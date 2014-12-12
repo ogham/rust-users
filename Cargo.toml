@@ -1,0 +1,10 @@
+[package]
+
+name = "users"
+description = "Library for getting information on Unix users and groups"
+
+authors = [ "ogham@bsago.me" ]
+documentation = "http://www.rust-ci.org/ogham/rust-users/doc/users/"
+license = "MIT"
+readme = "README.md"
+version = "0.1.0"
