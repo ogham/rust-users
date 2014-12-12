@@ -103,7 +103,7 @@ This crate, like all external crates, works very well with Cargo. Add the follow
 
 ```toml
 [dependencies.users]
-git = "https://github.com/ogham/rust-users"
+git = "https://github.com/ogham/rust-users.git"
 ```
 
 And the `users` crate should be available to you.
