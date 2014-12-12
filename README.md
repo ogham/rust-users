@@ -42,6 +42,9 @@ after the program has started running. For arbitrary user IDs, this is
 running a program, or is the owner of files, or for that user to have
 never existed. So always check the return values from `user_to_uid`!
 
+There is also a `get_current_username` function, as it's such a common
+operation that it deserves special treatment.
+
 Caching
 -------
 

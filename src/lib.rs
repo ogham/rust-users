@@ -43,6 +43,9 @@
 //! running a program, or is the owner of files, or for that user to have
 //! never existed. So always check the return values from `user_to_uid`!
 //!
+//! There is also a `get_current_username` function, as it's such a common
+//! operation that it deserves special treatment.
+//!
 //! Caching
 //! -------
 //!
@@ -116,8 +119,11 @@ pub trait Users {
     /// Return a Group object if one exists for the given groupname; otherwise, return None.
     fn get_group_by_name(&mut self, group_name: String) -> Option<Group>;
 
-    /// Return the user ID for the user running the program.
+    /// Return the user ID for the user running the process.
     fn get_current_uid(&mut self) -> i32;
+    
+    /// Return the username of the user running the process.
+    fn get_current_username(&mut self) -> Option<String>;
 }
 
 #[repr(C)]
@@ -341,6 +347,12 @@ impl Users for OSUsers {
             }
         }
     }
+
+    /// Return the username of the user running the process.
+    fn get_current_username(&mut self) -> Option<String> {
+    	let uid = self.get_current_uid();
+    	self.get_user_by_uid(uid).map(|u| u.name)
+    }
 }
 
 impl OSUsers {
@@ -376,14 +388,19 @@ pub fn get_group_by_name(group_name: String) -> Option<Group> {
     OSUsers::empty_cache().get_group_by_name(group_name)
 }
 
-/// Return the user ID for the user running the program.
+/// Return the user ID for the user running the process.
 pub fn get_current_uid() -> i32 {
     OSUsers::empty_cache().get_current_uid()
 }
 
+/// Return the username of the user running the process.
+pub fn get_current_username() -> Option<String> {
+	OSUsers::empty_cache().get_current_username()
+}
+
 #[cfg(test)]
 mod test {
-    use super::{Users, OSUsers};
+    use super::{Users, OSUsers, get_current_username};
 
     #[test]
     fn uid() {
@@ -394,7 +411,7 @@ mod test {
     fn username() {
         let mut users = OSUsers::empty_cache();
         let uid = users.get_current_uid();
-        users.get_user_by_uid(uid);
+        assert_eq!(get_current_username().unwrap(), users.get_user_by_uid(uid).unwrap().name);
     }
 
     #[test]
