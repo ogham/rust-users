@@ -1,4 +1,4 @@
-# rust-users
+# rust-users [![Build Status](https://travis-ci.org/ogham/rust-users.svg?branch=master)](https://travis-ci.org/ogham/rust-users)
 
 This is a library for getting information on Unix users and groups.
 
