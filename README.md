@@ -1,7 +1,23 @@
-rust-users
-==========
+# rust-users
 
 This is a library for getting information on Unix users and groups.
+
+### [View the Rustdoc](http://bsago.me/doc/users/)
+
+# Installation
+
+This crate, like all external crates, works very well with
+[Cargo](http://crates.io/). Add the following to your `Cargo.toml`:
+
+```toml
+[dependencies.users]
+git = "https://github.com/ogham/rust-users.git"
+```
+
+And the `users` crate should be available to you.
+
+
+# Usage
 
 In Unix, each user has an individual *user ID*, and each process has an
 *effective user ID* that says which user's permissions it is using.
@@ -14,8 +30,7 @@ strings. It also offers basic caching functionality.
 It does not (yet) offer *editing* functionality; the objects returned are
 read-only.
 
-Users
------
+## Users
 
 The function `get_current_uid` returns a `i32` value representing the user
 currently running the program, and the `get_user_by_uid` function scans the
@@ -45,8 +60,7 @@ never existed. So always check the return values from `user_to_uid`!
 There is also a `get_current_username` function, as it's such a common
 operation that it deserves special treatment.
 
-Caching
--------
+## Caching
 
 Despite the above warning, the users and groups database rarely changes.
 While a short program may only need to get user information once, a
@@ -74,8 +88,7 @@ selected entries, as when the database may have been modified, it's best to
 start entirely afresh. So to accomplish this, just start using a new
 `OSUsers` object.
 
-Groups
-------
+## Groups
 
 Finally, it's possible to get groups in a similar manner. A `Group` object
 has the following public fields:
@@ -95,15 +108,3 @@ for member in group.members.into_iter() {
     println!("{} is a member of the group", member);
 }
 ```
-
-How to Use
-==========
-
-This crate, like all external crates, works very well with Cargo. Add the following to your `Cargo.toml`:
-
-```toml
-[dependencies.users]
-git = "https://github.com/ogham/rust-users.git"
-```
-
-And the `users` crate should be available to you.

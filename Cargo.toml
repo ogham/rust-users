@@ -4,7 +4,8 @@ name = "users"
 description = "Library for getting information on Unix users and groups"
 
 authors = [ "ogham@bsago.me" ]
-documentation = "http://www.rust-ci.org/ogham/rust-users/doc/users/"
+documentation = "http://bsago.me/doc/users/"
+homepage = "https://github.com/ogham/rust-users"
 license = "MIT"
 readme = "README.md"
-version = "0.1.0"
+version = "0.1.1"
