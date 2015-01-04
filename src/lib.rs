@@ -162,7 +162,7 @@ extern {
     fn getuid() -> c_int;
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 /// Information about a particular user.
 pub struct User {
 
@@ -177,7 +177,7 @@ pub struct User {
 }
 
 /// Information about a particular group.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Group {
 
     /// This group's ID
@@ -191,7 +191,7 @@ pub struct Group {
 }
 
 /// A producer of user and group instances that caches every result.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct OSUsers {
     users: HashMap<i32, Option<User>>,
     users_back: HashMap<String, Option<i32>>,
@@ -203,7 +203,7 @@ pub struct OSUsers {
 }
 
 unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
-    if pointer.is_not_null() {
+    if !pointer.is_null() {
         let pw = read(pointer);
         Some(User { uid: pw.pw_uid, name: String::from_raw_buf(pw.pw_name as *const u8), primary_group: pw.pw_gid as u32 })
     }
@@ -213,7 +213,7 @@ unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
 }
 
 unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
-    if pointer.is_not_null() {
+    if !pointer.is_null() {
         let gr = read(pointer);
         let name = String::from_raw_buf(gr.gr_name as *const u8);
         let members = members(gr.gr_mem);
@@ -233,7 +233,7 @@ unsafe fn members(groups: *const *const c_char) -> Vec<String> {
     loop {
         match groups.offset(i).as_ref() {
             Some(&username) => {
-                if username.is_not_null() {
+                if !username.is_null() {
                     members.push(String::from_raw_buf(username as *const u8));
                 }
                 else {
