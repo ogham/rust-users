@@ -90,10 +90,14 @@
 //! ```rust
 //! use users::{Users, OSUsers};
 //! let mut cache = OSUsers::empty_cache();
-//! let group = cache.get_group_by_name("admin".to_string()).expect("No such group 'admin'!");
-//! println!("The '{}' group has the ID {}", group.name, group.gid);
-//! for member in group.members.into_iter() {
-//!     println!("{} is a member of the group", member);
+//! match cache.get_group_by_name("admin".to_string()) {
+//!     None => {},
+//!     Some(group) => {
+//!         println!("The '{}' group has the ID {}", group.name, group.gid);
+//!         for member in group.members.into_iter() {
+//!             println!("{} is a member of the group", member);
+//!         }
+//!     }
 //! }
 //! ```
 
@@ -121,7 +125,7 @@ pub trait Users {
 
     /// Return the user ID for the user running the process.
     fn get_current_uid(&mut self) -> i32;
-    
+
     /// Return the username of the user running the process.
     fn get_current_username(&mut self) -> Option<String>;
 }
@@ -350,8 +354,8 @@ impl Users for OSUsers {
 
     /// Return the username of the user running the process.
     fn get_current_username(&mut self) -> Option<String> {
-    	let uid = self.get_current_uid();
-    	self.get_user_by_uid(uid).map(|u| u.name)
+        let uid = self.get_current_uid();
+        self.get_user_by_uid(uid).map(|u| u.name)
     }
 }
 
@@ -395,7 +399,7 @@ pub fn get_current_uid() -> i32 {
 
 /// Return the username of the user running the process.
 pub fn get_current_username() -> Option<String> {
-	OSUsers::empty_cache().get_current_username()
+    OSUsers::empty_cache().get_current_username()
 }
 
 #[cfg(test)]
