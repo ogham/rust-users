@@ -1,6 +1,7 @@
 # rust-users [![Build Status](https://travis-ci.org/ogham/rust-users.svg?branch=master)](https://travis-ci.org/ogham/rust-users)
 
-This is a library for getting information on Unix users and groups.
+This is a library for getting information on Unix users and groups. It
+supports getting the system users, and creating your own mock tables.
 
 ### [View the Rustdoc](http://bsago.me/doc/users/)
 
@@ -108,3 +109,12 @@ for member in group.members.into_iter() {
     println!("{} is a member of the group", member);
 }
 ```
+
+## Caveats
+
+You should be prepared for the users and groups tables to be completely
+broken: IDs shouldn't be assumed to map to actual users and groups, and
+usernames and group names aren't guaranteed to map either!
+
+Use the mocking module to create custom tables to test your code for these
+edge cases.
