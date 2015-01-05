@@ -100,6 +100,16 @@
 //!     }
 //! }
 //! ```
+//!
+//! Caveats
+//! -------
+//!
+//! You should be prepared for the users and groups tables to be completely
+//! broken: IDs shouldn't be assumed to map to actual users and groups, and
+//! usernames and group names aren't guaranteed to map either!
+//!
+//! Use the mocking module to create custom tables to test your code for these
+//! edge cases.
 
 extern crate libc;
 use libc::{c_char, c_int, uid_t, gid_t, time_t};
@@ -107,6 +117,8 @@ use libc::{c_char, c_int, uid_t, gid_t, time_t};
 use std::ptr::read;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+
+pub mod mock;
 
 /// The trait for the `OSUsers` object.
 pub trait Users {
