@@ -268,17 +268,17 @@ unsafe fn members(groups: *const *const c_char) -> Vec<String> {
 
 impl Users for OSUsers {
     fn get_user_by_uid(&mut self, uid: i32) -> Option<User> {
-        match self.users.entry(uid) {
+        match self.users.entry(&uid) {
             Vacant(entry) => {
                 let user = unsafe { passwd_to_user(getpwuid(uid as i32)) };
                 match user {
                     Some(user) => {
-                        entry.set(Some(user.clone()));
+                        entry.insert(Some(user.clone()));
                         self.users_back.insert(user.name.clone(), Some(user.uid));
                         Some(user)
                     },
                     None => {
-                        entry.set(None);
+                        entry.insert(None);
                         None
                     }
                 }
@@ -288,17 +288,17 @@ impl Users for OSUsers {
     }
 
     fn get_user_by_name(&mut self, username: String) -> Option<User> {
-        match self.users_back.entry(username.clone()) {
+        match self.users_back.entry(&username) {
             Vacant(entry) => {
                 let user = unsafe { passwd_to_user(getpwnam(username.as_ptr() as *const i8)) };
                 match user {
                     Some(user) => {
-                        entry.set(Some(user.uid));
+                        entry.insert(Some(user.uid));
                         self.users.insert(user.uid, Some(user.clone()));
                         Some(user)
                     },
                     None => {
-                        entry.set(None);
+                        entry.insert(None);
                         None
                     }
                 }
@@ -311,17 +311,17 @@ impl Users for OSUsers {
     }
 
     fn get_group_by_gid(&mut self, gid: u32) -> Option<Group> {
-        match self.groups.clone().entry(gid) {
+        match self.groups.clone().entry(&gid) {
             Vacant(entry) => {
                 let group = unsafe { struct_to_group(getgrgid(gid)) };
                 match group {
                     Some(group) => {
-                        entry.set(Some(group.clone()));
+                        entry.insert(Some(group.clone()));
                         self.groups_back.insert(group.name.clone(), Some(group.gid));
                         Some(group)
                     },
                     None => {
-                        entry.set(None);
+                        entry.insert(None);
                         None
                     }
                 }
@@ -331,17 +331,17 @@ impl Users for OSUsers {
     }
 
     fn get_group_by_name(&mut self, group_name: String) -> Option<Group> {
-        match self.groups_back.clone().entry(group_name.clone()) {
+        match self.groups_back.clone().entry(&group_name) {
             Vacant(entry) => {
                 let user = unsafe { struct_to_group(getgrnam(group_name.as_ptr() as *const i8)) };
                 match user {
                     Some(group) => {
-                        entry.set(Some(group.gid));
+                        entry.insert(Some(group.gid));
                         self.groups.insert(group.gid, Some(group.clone()));
                         Some(group)
                     },
                     None => {
-                        entry.set(None);
+                        entry.insert(None);
                         None
                     }
                 }
