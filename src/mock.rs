@@ -39,7 +39,7 @@
 //! use users::mock::MockUsers;
 //!
 //! fn print_current_username<U: Users>(users: &mut U) {
-//! 	println!("Current user: {}", users.get_current_username());
+//! 	println!("Current user: {}", users.get_current_username().unwrap());
 //! }
 //!
 //! let mut users = MockUsers::with_current_uid(1001);

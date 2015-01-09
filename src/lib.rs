@@ -1,6 +1,7 @@
 #![crate_name = "users"]
 #![crate_type = "rlib"]
 #![crate_type = "dylib"]
+#![allow(unstable)]
 
 //! This is a library for getting information on Unix users and groups.
 //!
@@ -114,7 +115,9 @@
 extern crate libc;
 use libc::{c_char, c_int, uid_t, gid_t, time_t};
 
+use std::ffi::c_str_to_bytes;
 use std::ptr::read;
+use std::str::from_utf8_unchecked;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 
@@ -218,10 +221,14 @@ pub struct OSUsers {
     uid: Option<i32>,
 }
 
+unsafe fn from_raw_buf(p: *const i8) -> String {
+    from_utf8_unchecked(c_str_to_bytes(&p)).to_string()
+}
+
 unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
     if !pointer.is_null() {
         let pw = read(pointer);
-        Some(User { uid: pw.pw_uid, name: String::from_raw_buf(pw.pw_name as *const u8), primary_group: pw.pw_gid as u32 })
+        Some(User { uid: pw.pw_uid, name: from_raw_buf(pw.pw_name as *const i8), primary_group: pw.pw_gid as u32 })
     }
     else {
         None
@@ -231,7 +238,7 @@ unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
 unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
     if !pointer.is_null() {
         let gr = read(pointer);
-        let name = String::from_raw_buf(gr.gr_name as *const u8);
+        let name = from_raw_buf(gr.gr_name as *const i8);
         let members = members(gr.gr_mem);
         Some(Group { gid: gr.gr_gid, name: name, members: members })
     }
@@ -250,7 +257,7 @@ unsafe fn members(groups: *const *const c_char) -> Vec<String> {
         match groups.offset(i).as_ref() {
             Some(&username) => {
                 if !username.is_null() {
-                    members.push(String::from_raw_buf(username as *const u8));
+                    members.push(from_raw_buf(username as *const i8));
                 }
                 else {
                     return members;
@@ -268,7 +275,7 @@ unsafe fn members(groups: *const *const c_char) -> Vec<String> {
 
 impl Users for OSUsers {
     fn get_user_by_uid(&mut self, uid: i32) -> Option<User> {
-        match self.users.entry(&uid) {
+        match self.users.entry(uid) {
             Vacant(entry) => {
                 let user = unsafe { passwd_to_user(getpwuid(uid as i32)) };
                 match user {
@@ -288,7 +295,7 @@ impl Users for OSUsers {
     }
 
     fn get_user_by_name(&mut self, username: String) -> Option<User> {
-        match self.users_back.entry(&username) {
+        match self.users_back.entry(username.clone()) {
             Vacant(entry) => {
                 let user = unsafe { passwd_to_user(getpwnam(username.as_ptr() as *const i8)) };
                 match user {
@@ -311,7 +318,7 @@ impl Users for OSUsers {
     }
 
     fn get_group_by_gid(&mut self, gid: u32) -> Option<Group> {
-        match self.groups.clone().entry(&gid) {
+        match self.groups.clone().entry(gid) {
             Vacant(entry) => {
                 let group = unsafe { struct_to_group(getgrgid(gid)) };
                 match group {
@@ -331,7 +338,7 @@ impl Users for OSUsers {
     }
 
     fn get_group_by_name(&mut self, group_name: String) -> Option<Group> {
-        match self.groups_back.clone().entry(&group_name) {
+        match self.groups_back.clone().entry(group_name.clone()) {
             Vacant(entry) => {
                 let user = unsafe { struct_to_group(getgrnam(group_name.as_ptr() as *const i8)) };
                 match user {
