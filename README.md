@@ -24,9 +24,9 @@ In Unix, each user has an individual *user ID*, and each process has an
 *effective user ID* that says which user's permissions it is using.
 Furthermore, users can be the members of *groups*, which also have names
 and IDs. This functionality is exposed in libc, the C standard library,
-but as this an unsafe Rust interface. This wrapper library provides a safe
-interface, using User and Group objects instead of low-level pointers and
-strings. It also offers basic caching functionality.
+but as an unsafe Rust interface. This wrapper library provides a safe
+interface, using User and Group objects instead of low-level pointers
+and strings. It also offers basic caching functionality.
 
 It does not (yet) offer *editing* functionality; the objects returned are
 read-only.
