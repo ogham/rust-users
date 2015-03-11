@@ -116,7 +116,7 @@
 extern crate libc;
 use libc::{c_char, c_int, uid_t, gid_t, time_t};
 
-use std::ffi::c_str_to_bytes;
+use std::ffi::CStr;
 use std::ptr::read;
 use std::str::from_utf8_unchecked;
 use std::collections::HashMap;
@@ -223,7 +223,7 @@ pub struct OSUsers {
 }
 
 unsafe fn from_raw_buf(p: *const i8) -> String {
-    from_utf8_unchecked(c_str_to_bytes(&p)).to_string()
+    from_utf8_unchecked(CStr::from_ptr(p).to_bytes()).to_string()
 }
 
 unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
