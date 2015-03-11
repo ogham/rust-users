@@ -8,7 +8,7 @@ documentation = "http://bsago.me/doc/users/"
 homepage = "https://github.com/ogham/rust-users"
 license = "MIT"
 readme = "README.md"
-version = "0.2.3"
+version = "0.3.0"
 
 [dependencies]
 libc = "0.1.1"
