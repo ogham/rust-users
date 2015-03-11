@@ -39,7 +39,7 @@
 //! use users::mock::MockUsers;
 //!
 //! fn print_current_username<U: Users>(users: &mut U) {
-//! 	println!("Current user: {:?}", users.get_current_username());
+//!     println!("Current user: {:?}", users.get_current_username());
 //! }
 //!
 //! let mut users = MockUsers::with_current_uid(1001);
@@ -55,126 +55,126 @@ use std::collections::HashMap;
 
 /// A mocking users object that you can add your own users and groups to.
 pub struct MockUsers {
-	users: HashMap<i32, User>,
+    users: HashMap<i32, User>,
     groups: HashMap<u32, Group>,
     uid: i32,
 }
 
 impl MockUsers {
-	/// Create a new, empty mock users object.
-	pub fn with_current_uid(current_uid: i32) -> MockUsers {
-		MockUsers {
-			users: HashMap::new(),
-			groups: HashMap::new(),
-			uid: current_uid,
-		}
-	}
+    /// Create a new, empty mock users object.
+    pub fn with_current_uid(current_uid: i32) -> MockUsers {
+        MockUsers {
+            users: HashMap::new(),
+            groups: HashMap::new(),
+            uid: current_uid,
+        }
+    }
 
-	/// Add a user to the users table.
-	pub fn add_user(&mut self, user: User) -> Option<User> {
-		self.users.insert(user.uid, user)
-	}
+    /// Add a user to the users table.
+    pub fn add_user(&mut self, user: User) -> Option<User> {
+        self.users.insert(user.uid, user)
+    }
 
-	/// Add a group to the groups table.
-	pub fn add_group(&mut self, group: Group) -> Option<Group> {
-		self.groups.insert(group.gid, group)
-	}
+    /// Add a group to the groups table.
+    pub fn add_group(&mut self, group: Group) -> Option<Group> {
+        self.groups.insert(group.gid, group)
+    }
 }
 
 impl Users for MockUsers {
     fn get_user_by_uid(&mut self, uid: i32) -> Option<User> {
-    	self.users.get(&uid).cloned()
+        self.users.get(&uid).cloned()
     }
 
     fn get_user_by_name(&mut self, username: &str) -> Option<User> {
-		self.users.values().find(|u| u.name == username).cloned()
+        self.users.values().find(|u| u.name == username).cloned()
     }
 
     fn get_group_by_gid(&mut self, gid: u32) -> Option<Group> {
-    	self.groups.get(&gid).cloned()
+        self.groups.get(&gid).cloned()
     }
 
     fn get_group_by_name(&mut self, group_name: &str) -> Option<Group> {
-    	self.groups.values().find(|g| g.name == group_name).cloned()
+        self.groups.values().find(|g| g.name == group_name).cloned()
     }
 
     fn get_current_uid(&mut self) -> i32 {
-    	self.uid
+        self.uid
     }
 
     fn get_current_username(&mut self) -> Option<String> {
-    	self.users.get(&self.uid).map(|u| u.name.clone())
+        self.users.get(&self.uid).map(|u| u.name.clone())
     }
 }
 
 #[cfg(test)]
 mod test {
-	use super::{Users, User, Group, MockUsers};
+    use super::{Users, User, Group, MockUsers};
 
-	#[test]
-	fn current_username() {
-		let mut users = MockUsers::with_current_uid(1337);
-		users.add_user(User { uid: 1337, name: "fred".to_string(), primary_group: 101 });
-		assert_eq!(Some("fred".to_string()), users.get_current_username())
-	}
+    #[test]
+    fn current_username() {
+        let mut users = MockUsers::with_current_uid(1337);
+        users.add_user(User { uid: 1337, name: "fred".to_string(), primary_group: 101 });
+        assert_eq!(Some("fred".to_string()), users.get_current_username())
+    }
 
-	#[test]
-	fn no_current_username() {
-		let mut users = MockUsers::with_current_uid(1337);
-		assert_eq!(None, users.get_current_username())
-	}
+    #[test]
+    fn no_current_username() {
+        let mut users = MockUsers::with_current_uid(1337);
+        assert_eq!(None, users.get_current_username())
+    }
 
-	#[test]
-	fn uid() {
-	    let mut users = MockUsers::with_current_uid(0);
-		users.add_user(User { uid: 1337, name: "fred".to_string(), primary_group: 101 });
-		assert_eq!(Some("fred".to_string()), users.get_user_by_uid(1337).map(|u| u.name))
-	}
+    #[test]
+    fn uid() {
+        let mut users = MockUsers::with_current_uid(0);
+        users.add_user(User { uid: 1337, name: "fred".to_string(), primary_group: 101 });
+        assert_eq!(Some("fred".to_string()), users.get_user_by_uid(1337).map(|u| u.name))
+    }
 
-	#[test]
-	fn username() {
-		let mut users = MockUsers::with_current_uid(1337);
-		users.add_user(User { uid: 1440, name: "fred".to_string(), primary_group: 101 });
-		assert_eq!(Some(1440), users.get_user_by_name("fred").map(|u| u.uid))
-	}
+    #[test]
+    fn username() {
+        let mut users = MockUsers::with_current_uid(1337);
+        users.add_user(User { uid: 1440, name: "fred".to_string(), primary_group: 101 });
+        assert_eq!(Some(1440), users.get_user_by_name("fred").map(|u| u.uid))
+    }
 
-	#[test]
-	fn no_username() {
-		let mut users = MockUsers::with_current_uid(1337);
-		users.add_user(User { uid: 1440, name: "fred".to_string(), primary_group: 101 });
-		assert_eq!(None, users.get_user_by_name("criminy").map(|u| u.uid))
-	}
+    #[test]
+    fn no_username() {
+        let mut users = MockUsers::with_current_uid(1337);
+        users.add_user(User { uid: 1440, name: "fred".to_string(), primary_group: 101 });
+        assert_eq!(None, users.get_user_by_name("criminy").map(|u| u.uid))
+    }
 
-	#[test]
-	fn no_uid() {
-	    let mut users = MockUsers::with_current_uid(0);
-		assert_eq!(None, users.get_user_by_uid(1337).map(|u| u.name))
-	}
+    #[test]
+    fn no_uid() {
+        let mut users = MockUsers::with_current_uid(0);
+        assert_eq!(None, users.get_user_by_uid(1337).map(|u| u.name))
+    }
 
-	#[test]
-	fn gid() {
-	    let mut users = MockUsers::with_current_uid(0);
-		users.add_group(Group { gid: 1337, name: "fred".to_string(), members: vec![], });
-		assert_eq!(Some("fred".to_string()), users.get_group_by_gid(1337).map(|g| g.name))
-	}
+    #[test]
+    fn gid() {
+        let mut users = MockUsers::with_current_uid(0);
+        users.add_group(Group { gid: 1337, name: "fred".to_string(), members: vec![], });
+        assert_eq!(Some("fred".to_string()), users.get_group_by_gid(1337).map(|g| g.name))
+    }
 
-	#[test]
-	fn group_name() {
-	    let mut users = MockUsers::with_current_uid(0);
-		users.add_group(Group { gid: 1337, name: "fred".to_string(), members: vec![], });
-		assert_eq!(Some(1337), users.get_group_by_name("fred").map(|g| g.gid))
-	}
+    #[test]
+    fn group_name() {
+        let mut users = MockUsers::with_current_uid(0);
+        users.add_group(Group { gid: 1337, name: "fred".to_string(), members: vec![], });
+        assert_eq!(Some(1337), users.get_group_by_name("fred").map(|g| g.gid))
+    }
 
-	#[test]
-	fn no_group_name() {
-	    let mut users = MockUsers::with_current_uid(0);
-		users.add_group(Group { gid: 1337, name: "fred".to_string(), members: vec![], });
-		assert_eq!(None, users.get_group_by_name("santa").map(|g| g.gid))
-	}
+    #[test]
+    fn no_group_name() {
+        let mut users = MockUsers::with_current_uid(0);
+        users.add_group(Group { gid: 1337, name: "fred".to_string(), members: vec![], });
+        assert_eq!(None, users.get_group_by_name("santa").map(|g| g.gid))
+    }
 
-	#[test]
-	fn no_gid() {
-	    let mut users = MockUsers::with_current_uid(0);
-		assert_eq!(None, users.get_group_by_gid(1337).map(|g| g.name))
-	}
+    #[test]
+    fn no_gid() {
+        let mut users = MockUsers::with_current_uid(0);
+        assert_eq!(None, users.get_group_by_gid(1337).map(|g| g.name))
+    }
 }
