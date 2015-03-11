@@ -2,7 +2,7 @@
 #![crate_type = "rlib"]
 #![crate_type = "dylib"]
 #![allow(unused_features)]
-#![feature(core, libc, std_misc)]
+#![feature(collections, core, libc, std_misc)]
 
 //! This is a library for getting information on Unix users and groups.
 //!
@@ -92,7 +92,7 @@
 //! ```rust
 //! use users::{Users, OSUsers};
 //! let mut cache = OSUsers::empty_cache();
-//! match cache.get_group_by_name("admin".to_string()) {
+//! match cache.get_group_by_name("admin") {
 //!     None => {},
 //!     Some(group) => {
 //!         println!("The '{}' group has the ID {}", group.name, group.gid);
@@ -116,6 +116,9 @@
 extern crate libc;
 use libc::{c_char, c_int, uid_t, gid_t, time_t};
 
+extern crate collections;
+use collections::borrow::ToOwned;
+
 use std::ffi::CStr;
 use std::ptr::read;
 use std::str::from_utf8_unchecked;
@@ -131,13 +134,13 @@ pub trait Users {
     fn get_user_by_uid(&mut self, uid: i32) -> Option<User>;
 
     /// Return a User object if one exists for the given username; otherwise, return None.
-    fn get_user_by_name(&mut self, username: String) -> Option<User>;
+    fn get_user_by_name(&mut self, username: &str) -> Option<User>;
 
     /// Return a Group object if one exists for the given group ID; otherwise, return None.
     fn get_group_by_gid(&mut self, gid: u32) -> Option<Group>;
 
     /// Return a Group object if one exists for the given groupname; otherwise, return None.
-    fn get_group_by_name(&mut self, group_name: String) -> Option<Group>;
+    fn get_group_by_name(&mut self, group_name: &str) -> Option<Group>;
 
     /// Return the user ID for the user running the process.
     fn get_current_uid(&mut self) -> i32;
@@ -295,8 +298,10 @@ impl Users for OSUsers {
         }
     }
 
-    fn get_user_by_name(&mut self, username: String) -> Option<User> {
-        match self.users_back.entry(username.clone()) {
+    fn get_user_by_name(&mut self, username: &str) -> Option<User> {
+        // to_owned() could change here:
+        // https://github.com/rust-lang/rfcs/blob/master/text/0509-collections-reform-part-2.md#alternatives-to-toowned-on-entries
+        match self.users_back.entry(username.to_owned()) {
             Vacant(entry) => {
                 let user = unsafe { passwd_to_user(getpwnam(username.as_ptr() as *const i8)) };
                 match user {
@@ -338,8 +343,10 @@ impl Users for OSUsers {
         }
     }
 
-    fn get_group_by_name(&mut self, group_name: String) -> Option<Group> {
-        match self.groups_back.clone().entry(group_name.clone()) {
+    fn get_group_by_name(&mut self, group_name: &str) -> Option<Group> {
+        // to_owned() could change here:
+        // https://github.com/rust-lang/rfcs/blob/master/text/0509-collections-reform-part-2.md#alternatives-to-toowned-on-entries
+        match self.groups_back.clone().entry(group_name.to_owned()) {
             Vacant(entry) => {
                 let user = unsafe { struct_to_group(getgrnam(group_name.as_ptr() as *const i8)) };
                 match user {
@@ -398,7 +405,7 @@ pub fn get_user_by_uid(uid: i32) -> Option<User> {
 }
 
 /// Return a User object if one exists for the given username; otherwise, return None.
-pub fn get_user_by_name(username: String) -> Option<User> {
+pub fn get_user_by_name(username: &str) -> Option<User> {
     OSUsers::empty_cache().get_user_by_name(username)
 }
 
@@ -408,7 +415,7 @@ pub fn get_group_by_gid(gid: u32) -> Option<Group> {
 }
 
 /// Return a Group object if one exists for the given groupname; otherwise, return None.
-pub fn get_group_by_name(group_name: String) -> Option<Group> {
+pub fn get_group_by_name(group_name: &str) -> Option<Group> {
     OSUsers::empty_cache().get_group_by_name(group_name)
 }
 
