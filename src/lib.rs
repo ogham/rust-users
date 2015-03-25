@@ -317,7 +317,7 @@ impl Users for OSUsers {
                 }
             },
             Occupied(entry) => match entry.get() {
-                &Some(uid) => self.users[uid].clone(),
+                &Some(uid) => self.users[&uid].clone(),
                 &None => None,
             }
         }
@@ -362,7 +362,7 @@ impl Users for OSUsers {
                 }
             },
             Occupied(entry) => match entry.get() {
-                &Some(gid) => self.groups[gid].clone(),
+                &Some(gid) => self.groups[&gid].clone(),
                 &None => None,
             }
         }
