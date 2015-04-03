@@ -163,8 +163,6 @@ struct c_passwd {
     pub pw_expire:  time_t,         // password expiry time
 }
 
-impl Copy for c_passwd { }
-
 #[repr(C)]
 struct c_group {
     pub gr_name:   *const c_char,         // group name
@@ -172,8 +170,6 @@ struct c_group {
     pub gr_gid:    gid_t,                 // group id
     pub gr_mem:    *const *const c_char,  // names of users in the group
 }
-
-impl Copy for c_group { }
 
 extern {
     fn getpwuid(uid: c_int) -> *const c_passwd;
