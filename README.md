@@ -5,6 +5,14 @@ supports getting the system users, and creating your own mock tables.
 
 ### [View the Rustdoc](http://bsago.me/doc/users/)
 
+## Beta-compatibility
+
+Unfortunately, **rust-users is not compatible with Rust beta**. You'll have to
+use the nightly. We're waiting on the following two things to settle:
+
+- [Alternatives to ToOwned](https://github.com/rust-lang/rfcs/blob/master/text/0509-collections-reform-part-2.md#alternatives-to-toowned-on-entries) in the collections crate
+- `as_ref` on C pointers in the core crate
+
 # Installation
 
 This crate, like all external crates, works very well with
