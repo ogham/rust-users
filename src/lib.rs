@@ -155,11 +155,11 @@ struct c_passwd {
     pub pw_passwd:  *const c_char,
     pub pw_uid:     uid_t,          // user ID
     pub pw_gid:     gid_t,          // group ID
-    pub pw_change:  time_t,
-    pub pw_class:   *const c_char,
     pub pw_gecos:   *const c_char,  // full name
     pub pw_dir:     *const c_char,  // login dir
     pub pw_shell:   *const c_char,  // login shell
+    pub pw_change:  time_t,
+    pub pw_class:   *const c_char,
     pub pw_expire:  time_t,         // password expiry time
 }
 
