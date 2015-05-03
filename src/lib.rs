@@ -1,8 +1,7 @@
 #![crate_name = "users"]
 #![crate_type = "rlib"]
 #![crate_type = "dylib"]
-#![allow(unused_features)]
-#![feature(collections, core, libc, std_misc)]
+#![feature(collections, core)]
 
 //! This is a library for getting information on Unix users and groups.
 //!
