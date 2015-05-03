@@ -52,17 +52,18 @@
 
 pub use super::{Users, User, Group};
 use std::collections::HashMap;
+use libc::{uid_t, gid_t};
 
 /// A mocking users object that you can add your own users and groups to.
 pub struct MockUsers {
-    users: HashMap<i32, User>,
-    groups: HashMap<u32, Group>,
-    uid: i32,
+    users: HashMap<uid_t, User>,
+    groups: HashMap<gid_t, Group>,
+    uid: uid_t,
 }
 
 impl MockUsers {
     /// Create a new, empty mock users object.
-    pub fn with_current_uid(current_uid: i32) -> MockUsers {
+    pub fn with_current_uid(current_uid: uid_t) -> MockUsers {
         MockUsers {
             users: HashMap::new(),
             groups: HashMap::new(),
@@ -82,7 +83,7 @@ impl MockUsers {
 }
 
 impl Users for MockUsers {
-    fn get_user_by_uid(&mut self, uid: i32) -> Option<User> {
+    fn get_user_by_uid(&mut self, uid: uid_t) -> Option<User> {
         self.users.get(&uid).cloned()
     }
 
@@ -90,7 +91,7 @@ impl Users for MockUsers {
         self.users.values().find(|u| u.name == username).cloned()
     }
 
-    fn get_group_by_gid(&mut self, gid: u32) -> Option<Group> {
+    fn get_group_by_gid(&mut self, gid: gid_t) -> Option<Group> {
         self.groups.get(&gid).cloned()
     }
 
@@ -98,7 +99,7 @@ impl Users for MockUsers {
         self.groups.values().find(|g| g.name == group_name).cloned()
     }
 
-    fn get_current_uid(&mut self) -> i32 {
+    fn get_current_uid(&mut self) -> uid_t {
         self.uid
     }
 

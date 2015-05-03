@@ -19,7 +19,7 @@
 //! Users
 //! -----
 //!
-//! The function `get_current_uid` returns a `i32` value representing the user
+//! The function `get_current_uid` returns a `uid_t` value representing the user
 //! currently running the program, and the `get_user_by_uid` function scans the
 //! users database and returns a User object with the user's information. This
 //! function returns `None` when there is no user for that ID.
@@ -113,7 +113,8 @@
 //! edge cases.
 
 extern crate libc;
-use libc::{c_char, c_int, uid_t, gid_t, time_t};
+pub use libc::{uid_t, gid_t};
+use libc::{c_char, time_t};
 
 extern crate collections;
 use collections::borrow::ToOwned;
@@ -130,19 +131,19 @@ pub mod mock;
 pub trait Users {
 
     /// Return a User object if one exists for the given user ID; otherwise, return None.
-    fn get_user_by_uid(&mut self, uid: i32) -> Option<User>;
+    fn get_user_by_uid(&mut self, uid: uid_t) -> Option<User>;
 
     /// Return a User object if one exists for the given username; otherwise, return None.
     fn get_user_by_name(&mut self, username: &str) -> Option<User>;
 
     /// Return a Group object if one exists for the given group ID; otherwise, return None.
-    fn get_group_by_gid(&mut self, gid: u32) -> Option<Group>;
+    fn get_group_by_gid(&mut self, gid: gid_t) -> Option<Group>;
 
     /// Return a Group object if one exists for the given groupname; otherwise, return None.
     fn get_group_by_name(&mut self, group_name: &str) -> Option<Group>;
 
     /// Return the user ID for the user running the process.
-    fn get_current_uid(&mut self) -> i32;
+    fn get_current_uid(&mut self) -> uid_t;
 
     /// Return the username of the user running the process.
     fn get_current_username(&mut self) -> Option<String>;
@@ -152,8 +153,8 @@ pub trait Users {
 struct c_passwd {
     pub pw_name:    *const c_char,  // login name
     pub pw_passwd:  *const c_char,
-    pub pw_uid:     c_int,          // user ID
-    pub pw_gid:     c_int,          // group ID
+    pub pw_uid:     uid_t,          // user ID
+    pub pw_gid:     gid_t,          // group ID
     pub pw_change:  time_t,
     pub pw_class:   *const c_char,
     pub pw_gecos:   *const c_char,  // full name
@@ -171,13 +172,13 @@ struct c_group {
 }
 
 extern {
-    fn getpwuid(uid: c_int) -> *const c_passwd;
+    fn getpwuid(uid: uid_t) -> *const c_passwd;
     fn getpwnam(user_name: *const c_char) -> *const c_passwd;
 
-    fn getgrgid(gid: uid_t) -> *const c_group;
+    fn getgrgid(gid: gid_t) -> *const c_group;
     fn getgrnam(group_name: *const c_char) -> *const c_group;
 
-    fn getuid() -> c_int;
+    fn getuid() -> uid_t;
 }
 
 #[derive(Clone)]
@@ -185,13 +186,13 @@ extern {
 pub struct User {
 
     /// This user's ID
-    pub uid: i32,
+    pub uid: uid_t,
 
     /// This user's name
     pub name: String,
 
     /// The ID of this user's primary group
-    pub primary_group: u32,
+    pub primary_group: gid_t,
 }
 
 /// Information about a particular group.
@@ -199,7 +200,7 @@ pub struct User {
 pub struct Group {
 
     /// This group's ID
-    pub gid: u32,
+    pub gid: uid_t,
 
     /// This group's name
     pub name: String,
@@ -211,13 +212,13 @@ pub struct Group {
 /// A producer of user and group instances that caches every result.
 #[derive(Clone)]
 pub struct OSUsers {
-    users: HashMap<i32, Option<User>>,
-    users_back: HashMap<String, Option<i32>>,
+    users: HashMap<uid_t, Option<User>>,
+    users_back: HashMap<String, Option<uid_t>>,
 
-    groups: HashMap<u32, Option<Group>>,
-    groups_back: HashMap<String, Option<u32>>,
+    groups: HashMap<gid_t, Option<Group>>,
+    groups_back: HashMap<String, Option<gid_t>>,
 
-    uid: Option<i32>,
+    uid: Option<uid_t>,
 }
 
 unsafe fn from_raw_buf(p: *const i8) -> String {
@@ -227,7 +228,7 @@ unsafe fn from_raw_buf(p: *const i8) -> String {
 unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
     if !pointer.is_null() {
         let pw = read(pointer);
-        Some(User { uid: pw.pw_uid, name: from_raw_buf(pw.pw_name as *const i8), primary_group: pw.pw_gid as u32 })
+        Some(User { uid: pw.pw_uid as uid_t, name: from_raw_buf(pw.pw_name as *const i8), primary_group: pw.pw_gid as gid_t })
     }
     else {
         None
@@ -273,10 +274,10 @@ unsafe fn members(groups: *const *const c_char) -> Vec<String> {
 }
 
 impl Users for OSUsers {
-    fn get_user_by_uid(&mut self, uid: i32) -> Option<User> {
+    fn get_user_by_uid(&mut self, uid: uid_t) -> Option<User> {
         match self.users.entry(uid) {
             Vacant(entry) => {
-                let user = unsafe { passwd_to_user(getpwuid(uid as i32)) };
+                let user = unsafe { passwd_to_user(getpwuid(uid)) };
                 match user {
                     Some(user) => {
                         entry.insert(Some(user.clone()));
@@ -318,7 +319,7 @@ impl Users for OSUsers {
         }
     }
 
-    fn get_group_by_gid(&mut self, gid: u32) -> Option<Group> {
+    fn get_group_by_gid(&mut self, gid: gid_t) -> Option<Group> {
         match self.groups.clone().entry(gid) {
             Vacant(entry) => {
                 let group = unsafe { struct_to_group(getgrgid(gid)) };
@@ -363,7 +364,7 @@ impl Users for OSUsers {
         }
     }
 
-    fn get_current_uid(&mut self) -> i32 {
+    fn get_current_uid(&mut self) -> uid_t {
         match self.uid {
             Some(uid) => uid,
             None => {
@@ -395,7 +396,7 @@ impl OSUsers {
 }
 
 /// Return a User object if one exists for the given user ID; otherwise, return None.
-pub fn get_user_by_uid(uid: i32) -> Option<User> {
+pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
     OSUsers::empty_cache().get_user_by_uid(uid)
 }
 
@@ -405,7 +406,7 @@ pub fn get_user_by_name(username: &str) -> Option<User> {
 }
 
 /// Return a Group object if one exists for the given group ID; otherwise, return None.
-pub fn get_group_by_gid(gid: u32) -> Option<Group> {
+pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
     OSUsers::empty_cache().get_group_by_gid(gid)
 }
 
@@ -415,7 +416,7 @@ pub fn get_group_by_name(group_name: &str) -> Option<Group> {
 }
 
 /// Return the user ID for the user running the process.
-pub fn get_current_uid() -> i32 {
+pub fn get_current_uid() -> uid_t {
     OSUsers::empty_cache().get_current_uid()
 }
 

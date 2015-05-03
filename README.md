@@ -41,7 +41,7 @@ read-only.
 
 ## Users
 
-The function `get_current_uid` returns a `i32` value representing the user
+The function `get_current_uid` returns a `uid_t` value representing the user
 currently running the program, and the `get_user_by_uid` function scans the
 users database and returns a User object with the user's information. This
 function returns `None` when there is no user for that ID.
