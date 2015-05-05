@@ -127,6 +127,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 
 pub mod mock;
 
+
 /// The trait for the `OSUsers` object.
 pub trait Users {
 
@@ -149,18 +150,31 @@ pub trait Users {
     fn get_current_username(&mut self) -> Option<String>;
 }
 
+#[cfg(any(target_os = "macos", target_os = "freebsd"))]
 #[repr(C)]
 struct c_passwd {
-    pub pw_name:    *const c_char,  // login name
-    pub pw_passwd:  *const c_char,
+    pub pw_name:    *const c_char,  // user name
+    pub pw_passwd:  *const c_char,  // password field
     pub pw_uid:     uid_t,          // user ID
     pub pw_gid:     gid_t,          // group ID
-    pub pw_gecos:   *const c_char,  // full name
-    pub pw_dir:     *const c_char,  // login dir
-    pub pw_shell:   *const c_char,  // login shell
-    pub pw_change:  time_t,
+    pub pw_change:  time_t,         // password change time
     pub pw_class:   *const c_char,
+    pub pw_gecos:   *const c_char,
+    pub pw_dir:     *const c_char,  // user's home directory
+    pub pw_shell:   *const c_char,  // user's shell
     pub pw_expire:  time_t,         // password expiry time
+}
+
+#[cfg(target_os = "linux")]
+#[repr(C)]
+struct c_passwd {
+    pub pw_name:    *const c_char,  // user name
+    pub pw_passwd:  *const c_char,  // password field
+    pub pw_uid:     uid_t,          // user ID
+    pub pw_gid:     gid_t,          // group ID
+    pub pw_gecos:   *const c_char,
+    pub pw_dir:     *const c_char,  // user's home directory
+    pub pw_shell:   *const c_char,  // user's shell
 }
 
 #[repr(C)]
