@@ -155,11 +155,11 @@ struct c_passwd {
     pub pw_passwd:  *const c_char,
     pub pw_uid:     uid_t,          // user ID
     pub pw_gid:     gid_t,          // group ID
-    pub pw_change:  time_t,
-    pub pw_class:   *const c_char,
     pub pw_gecos:   *const c_char,  // full name
     pub pw_dir:     *const c_char,  // login dir
     pub pw_shell:   *const c_char,  // login shell
+    pub pw_change:  time_t,
+    pub pw_class:   *const c_char,
     pub pw_expire:  time_t,         // password expiry time
 }
 
@@ -193,6 +193,12 @@ pub struct User {
 
     /// The ID of this user's primary group
     pub primary_group: gid_t,
+
+    /// This user's home directory
+    pub home_dir: String,
+
+    /// This user's shell
+    pub shell: String,
 }
 
 /// Information about a particular group.
@@ -228,7 +234,13 @@ unsafe fn from_raw_buf(p: *const i8) -> String {
 unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
     if !pointer.is_null() {
         let pw = read(pointer);
-        Some(User { uid: pw.pw_uid as uid_t, name: from_raw_buf(pw.pw_name as *const i8), primary_group: pw.pw_gid as gid_t })
+        Some(User {
+            uid: pw.pw_uid as uid_t,
+            name: from_raw_buf(pw.pw_name as *const i8),
+            primary_group: pw.pw_gid as gid_t,
+            home_dir: from_raw_buf(pw.pw_dir as *const i8),
+            shell: from_raw_buf(pw.pw_shell as *const i8)
+        })
     }
     else {
         None
@@ -456,5 +468,15 @@ mod test {
         let user = users.get_user_by_uid(uid).unwrap();
         let user2 = users.get_user_by_uid(user.uid).unwrap();
         assert_eq!(user2.uid, uid);
+    }
+
+    #[test]
+    fn user_info() {
+        let mut users = OSUsers::empty_cache();
+        let uid = users.get_current_uid();
+        let user = users.get_user_by_uid(uid).unwrap();
+        // Not a real test but can be used to verify correct results
+        // Use with --nocapture on test executable to show output
+        println!("HOME={}, SHELL={}", user.home_dir, user.shell);
     }
 }

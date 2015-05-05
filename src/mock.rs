@@ -19,7 +19,7 @@
 //! ```
 //! use users::mock::{MockUsers, User, Group};
 //! let mut users = MockUsers::with_current_uid(1000);
-//! users.add_user(User { uid: 1000, name: "Bobbins".to_string(), primary_group: 100 });
+//! users.add_user(User { uid: 1000, name: "Bobbins".to_string(), primary_group: 100, home_dir: "/home/bobbins".to_string(), shell: "/bin/bash".to_string() });
 //! users.add_group(Group { gid: 100, name: "funkyppl".to_string(), members: vec![ "other_person".to_string() ] });
 //! ```
 //!
@@ -43,7 +43,7 @@
 //! }
 //!
 //! let mut users = MockUsers::with_current_uid(1001);
-//! users.add_user(User { uid: 1001, name: "fred".to_string(), primary_group: 101 });
+//! users.add_user(User { uid: 1001, name: "fred".to_string(), primary_group: 101 , home_dir: "/home/fred".to_string(), shell: "/bin/bash".to_string()});
 //! print_current_username(&mut users);
 //!
 //! let mut actual_users = OSUsers::empty_cache();
@@ -115,7 +115,7 @@ mod test {
     #[test]
     fn current_username() {
         let mut users = MockUsers::with_current_uid(1337);
-        users.add_user(User { uid: 1337, name: "fred".to_string(), primary_group: 101 });
+        users.add_user(User { uid: 1337, name: "fred".to_string(), primary_group: 101, home_dir: "/home/fred".to_string(), shell: "/bin/bash".to_string() });
         assert_eq!(Some("fred".to_string()), users.get_current_username())
     }
 
@@ -128,21 +128,21 @@ mod test {
     #[test]
     fn uid() {
         let mut users = MockUsers::with_current_uid(0);
-        users.add_user(User { uid: 1337, name: "fred".to_string(), primary_group: 101 });
+        users.add_user(User { uid: 1337, name: "fred".to_string(), primary_group: 101, home_dir: "/home/fred".to_string(), shell: "/bin/bash".to_string() });
         assert_eq!(Some("fred".to_string()), users.get_user_by_uid(1337).map(|u| u.name))
     }
 
     #[test]
     fn username() {
         let mut users = MockUsers::with_current_uid(1337);
-        users.add_user(User { uid: 1440, name: "fred".to_string(), primary_group: 101 });
+        users.add_user(User { uid: 1440, name: "fred".to_string(), primary_group: 101, home_dir: "/home/fred".to_string(), shell: "/bin/bash".to_string() });
         assert_eq!(Some(1440), users.get_user_by_name("fred").map(|u| u.uid))
     }
 
     #[test]
     fn no_username() {
         let mut users = MockUsers::with_current_uid(1337);
-        users.add_user(User { uid: 1440, name: "fred".to_string(), primary_group: 101 });
+        users.add_user(User { uid: 1440, name: "fred".to_string(), primary_group: 101, home_dir: "/home/fred".to_string(), shell: "/bin/bash".to_string() });
         assert_eq!(None, users.get_user_by_name("criminy").map(|u| u.uid))
     }
 
