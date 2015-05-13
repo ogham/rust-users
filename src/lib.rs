@@ -114,12 +114,15 @@
 
 extern crate libc;
 pub use libc::{uid_t, gid_t};
+#[cfg(any(target_os = "macos", target_os = "freebsd"))]
 use libc::{c_char, time_t};
+#[cfg(target_os = "linux")]
+use libc::c_char;
 
 extern crate collections;
 use collections::borrow::ToOwned;
 
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::ptr::read;
 use std::str::from_utf8_unchecked;
 use std::collections::HashMap;
@@ -325,7 +328,15 @@ impl Users for OSUsers {
         // https://github.com/rust-lang/rfcs/blob/master/text/0509-collections-reform-part-2.md#alternatives-to-toowned-on-entries
         match self.users_back.entry(username.to_owned()) {
             Vacant(entry) => {
-                let user = unsafe { passwd_to_user(getpwnam(username.as_ptr() as *const i8)) };
+                let username_c = CString::new(username);
+
+                if !username_c.is_ok() {
+                    // This usually means the given username contained a '\0' already
+                    // It is debatable what to do here
+                    return None;
+                }
+
+                let user = unsafe { passwd_to_user(getpwnam(username_c.unwrap().as_ptr())) };
                 match user {
                     Some(user) => {
                         entry.insert(Some(user.uid));
@@ -346,7 +357,7 @@ impl Users for OSUsers {
     }
 
     fn get_group_by_gid(&mut self, gid: gid_t) -> Option<Group> {
-        match self.groups.clone().entry(gid) {
+        match self.groups.entry(gid) {
             Vacant(entry) => {
                 let group = unsafe { struct_to_group(getgrgid(gid)) };
                 match group {
@@ -368,9 +379,16 @@ impl Users for OSUsers {
     fn get_group_by_name(&mut self, group_name: &str) -> Option<Group> {
         // to_owned() could change here:
         // https://github.com/rust-lang/rfcs/blob/master/text/0509-collections-reform-part-2.md#alternatives-to-toowned-on-entries
-        match self.groups_back.clone().entry(group_name.to_owned()) {
+        match self.groups_back.entry(group_name.to_owned()) {
             Vacant(entry) => {
-                let user = unsafe { struct_to_group(getgrnam(group_name.as_ptr() as *const i8)) };
+                let group_name_c = CString::new(group_name);
+
+                if !group_name_c.is_ok() {
+                    // See comment at line #334
+                    return None;
+                }
+
+                let user = unsafe { struct_to_group(getgrnam(group_name_c.unwrap().as_ptr())) };
                 match user {
                     Some(group) => {
                         entry.insert(Some(group.gid));
@@ -492,5 +510,38 @@ mod test {
         // Not a real test but can be used to verify correct results
         // Use with --nocapture on test executable to show output
         println!("HOME={}, SHELL={}", user.home_dir, user.shell);
+    }
+
+    #[test]
+    fn get_user_by_name() {
+        // We cannot really test for arbitrary user as they might not exist on the machine
+        // Instead the name of the current user is used
+        let mut users = OSUsers::empty_cache();
+        let name = users.get_current_username().unwrap();
+        let user_by_name = users.get_user_by_name(&name);
+        assert!(user_by_name.is_some());
+        assert_eq!(user_by_name.unwrap().name, name);
+
+        // User names containing '\0' cannot be used (for now)
+        let user = users.get_user_by_name("user\0");
+        assert!(user.is_none());
+    }
+
+    #[test]
+    fn get_group_by_name() {
+        // We cannot really test for arbitrary groups as they might not exist on the machine
+        // Instead the primary group of the current user is used
+        let mut users = OSUsers::empty_cache();
+        let cur_uid = users.get_current_uid();
+        let cur_user = users.get_user_by_uid(cur_uid).unwrap();
+        let cur_group = users.get_group_by_gid(cur_user.primary_group).unwrap();
+        let group_by_name = users.get_group_by_name(&cur_group.name);
+
+        assert!(group_by_name.is_some());
+        assert_eq!(group_by_name.unwrap().name, cur_group.name);
+
+        // Group names containing '\0' cannot be used (for now)
+        let group = users.get_group_by_name("users\0");
+        assert!(group.is_none());
     }
 }
