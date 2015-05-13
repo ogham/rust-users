@@ -114,7 +114,10 @@
 
 extern crate libc;
 pub use libc::{uid_t, gid_t};
+#[cfg(any(target_os = "macos", target_os = "freebsd"))]
 use libc::{c_char, time_t};
+#[cfg(target_os = "linux")]
+use libc::c_char;
 
 extern crate collections;
 use collections::borrow::ToOwned;
