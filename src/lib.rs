@@ -114,7 +114,7 @@
 
 extern crate libc;
 pub use libc::{uid_t, gid_t};
-#[cfg(any(target_os = "macos", target_os = "freebsd"))]
+#[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
 use libc::{c_char, time_t};
 #[cfg(target_os = "linux")]
 use libc::c_char;
@@ -153,7 +153,7 @@ pub trait Users {
     fn get_current_username(&mut self) -> Option<String>;
 }
 
-#[cfg(any(target_os = "macos", target_os = "freebsd"))]
+#[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
 #[repr(C)]
 struct c_passwd {
     pub pw_name:    *const c_char,  // user name
