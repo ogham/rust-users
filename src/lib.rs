@@ -645,8 +645,10 @@ pub struct SwitchUserGuard {
 
 impl Drop for SwitchUserGuard {
     fn drop(&mut self) {
-        set_both_uid(self.uid, self.euid);
-        set_both_gid(self.gid, self.egid);
+        // Panic on error here, as failing to set values back
+        // is a possible security breach.
+        set_both_uid(self.uid, self.euid).unwrap();
+        set_both_gid(self.gid, self.egid).unwrap();
     }
 }
 
@@ -659,6 +661,11 @@ impl Drop for SwitchUserGuard {
 ///     // current and effective user and group ids are 1001
 /// }
 /// // back to the old values
+/// ```
+///
+/// Use with care! Possible security issues can happen, as Rust doesn't
+/// guarantee running the destructor! If in doubt run `drop()` method
+/// on the guard value manually!
 pub fn switch_user_group(uid: uid_t, gid: git_t, euid: uid_t, egid: gid_t) -> Result<SwitchUserGuard, io::Error> {
     let current_state = SwitchUserGuard {
         uid: get_current_uid(),
