@@ -127,7 +127,7 @@ use std::ptr::read;
 use std::str::from_utf8_unchecked;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::io::Error as IoError;
+use std::io;
 
 pub mod mock;
 
@@ -634,6 +634,42 @@ pub fn set_both_gid(rgid: gid_t, egid: git_t) -> Result<(), io::Error> {
         -1 => Err(io::Error::last_os_error())
         _ => unreachable!()
     }
+}
+
+pub struct SwitchUserGuard {
+    uid: uid_t,
+    gid: gid_t,
+    euid: euid_t,
+    egid: egid_t,
+}
+
+impl Drop for SwitchUserGuard {
+    fn drop(&mut self) {
+        set_both_uid(self.uid, self.euid);
+        set_both_gid(self.gid, self.egid);
+    }
+}
+
+/// Safely switch user and group for the current scope.
+/// Requires root access.
+///
+/// ```rust
+/// {
+///     let guard = switch_user_group(1001, 1001, 1001, 1001);
+///     // current and effective user and group ids are 1001
+/// }
+/// // back to the old values
+pub fn switch_user_group(uid: uid_t, gid: git_t, euid: uid_t, egid: gid_t) -> Result<SwitchUserGuard, io::Error> {
+    let current_state = SwitchUserGuard {
+        uid: get_current_uid(),
+        gid: get_current_gid(),
+        euid: get_effective_uid(),
+        egid: get_effective_gid(),
+    };
+    
+    try!(set_both_uid(uid, euid));
+    try!(set_both_gid(gid, egid));
+    Ok(current_state)
 }
 
 #[cfg(test)]
