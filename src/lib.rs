@@ -127,6 +127,7 @@ use std::ptr::read;
 use std::str::from_utf8_unchecked;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::io::Error as IoError;
 
 pub mod mock;
 
@@ -579,6 +580,60 @@ pub fn get_effective_gid() -> gid_t {
 /// Return the groupname of the effective user running the process.
 pub fn get_effective_groupname() -> Option<String> {
     OSUsers::empty_cache().get_effective_groupname()
+}
+
+/// Set current user for the running process, requires root priviledges.
+pub fn set_current_uid(uid: uid_t) -> Result<(), io::Error> {
+    match unsafe { setuid(uid) } {
+        0 => Ok(()),
+        -1 => Err(io::Error::last_os_error())
+        _ => unreachable!()
+    }
+}
+
+/// Set current group for the running process, requires root priviledges.
+pub fn set_current_gid(gid: gid_t) -> Result<(), io::Error> {
+    match unsafe { setgid(gid) } {
+        0 => Ok(()),
+        -1 => Err(io::Error::last_os_error())
+        _ => unreachable!()
+    }
+}
+
+/// Set effective user for the running process, requires root priviledges.
+pub fn set_effective_uid(uid: uid_t) -> Result<(), io::Error> {
+    match unsafe { seteuid(uid) } {
+        0 => Ok(()),
+        -1 => Err(io::Error::last_os_error())
+        _ => unreachable!()
+    }
+}
+
+/// Set effective user for the running process, requires root priviledges.
+pub fn set_effective_gid(gid: gid_t) -> Result<(), io::Error> {
+    match unsafe { setegid(gid) } {
+        0 => Ok(()),
+        -1 => Err(io::Error::last_os_error())
+        _ => unreachable!()
+    }
+}
+
+/// Atomically set current and effective user for the running process, requires root priviledges.
+pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> Result<(), io::Error> {
+    match unsafe { setreuid(ruid, euid) } {
+        0 => Ok(()),
+        -1 => Err(io::Error::last_os_error())
+        _ => unreachable!()
+    }
+}
+
+/// Atomically set current and effective group for the running process, requires root priviledges.
+pub fn set_both_gid(rgid: gid_t, egid: git_t) -> Result<(), io::Error> {
+    match unsafe { setregid(rgid, egid) } {
+        0 => Ok(()),
+        -1 => Err(io::Error::last_os_error())
+        _ => unreachable!()
+    }
 }
 
 #[cfg(test)]
