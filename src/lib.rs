@@ -113,7 +113,7 @@
 //! edge cases.
 
 extern crate libc;
-pub use libc::{uid_t, gid_t};
+pub use libc::{uid_t, gid_t, c_int};
 #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
 use libc::{c_char, time_t};
 #[cfg(target_os = "linux")]
@@ -152,22 +152,22 @@ pub trait Users {
 
     /// Return the username of the user running the process.
     fn get_current_username(&mut self) -> Option<String>;
-    
+
     /// Return the group ID for the user running the process.
     fn get_current_gid(&mut self) -> gid_t;
-    
+
     /// Return the group name of the user running the process.
     fn get_current_groupname(&mut self) -> Option<String>;
-    
+
     /// Return the effective user id.
     fn get_effective_uid(&mut self) -> uid_t;
-    
+
     /// Return the effective group id.
     fn get_effective_gid(&mut self) -> gid_t;
-    
+
     /// Return the effective username.
     fn get_effective_username(&mut self) -> Option<String>;
-    
+
     /// Return the effective group name.
     fn get_effective_groupname(&mut self) -> Option<String>;
 }
@@ -216,18 +216,18 @@ extern {
 
     fn getuid() -> uid_t;
     fn geteuid() -> uid_t;
-    
+
     fn setuid(uid: uid_t) -> c_int;
     fn seteuid(uid: uid_t) -> c_int;
-    
+
     fn getgid() -> gid_t;
-    fn getegid() -> git_t;
+    fn getegid() -> gid_t;
 
     fn setgid(gid: gid_t) -> c_int;
-    fn setegid(gid: git_t) -> c_int;
+    fn setegid(gid: gid_t) -> c_int;
 
     fn setreuid(ruid: uid_t, euid: uid_t) -> c_int;
-    fn setregid(rgid: git_t, egid: git_t) -> c_int;
+    fn setregid(rgid: gid_t, egid: gid_t) -> c_int;
 }
 
 #[derive(Clone)]
@@ -459,7 +459,7 @@ impl Users for OSUsers {
         let uid = self.get_current_uid();
         self.get_user_by_uid(uid).map(|u| u.name)
     }
-    
+
     fn get_current_gid(&mut self) -> gid_t {
         match self.gid {
             Some(gid) => gid,
@@ -470,12 +470,12 @@ impl Users for OSUsers {
             }
         }
     }
-    
+
     fn get_current_groupname(&mut self) -> Option<String> {
         let gid = self.get_current_gid();
         self.get_group_by_gid(gid).map(|g| g.name)
     }
-    
+
     fn get_effective_gid(&mut self) -> gid_t {
         match self.egid {
             Some(gid) => gid,
@@ -486,7 +486,7 @@ impl Users for OSUsers {
             }
         }
     }
-    
+
     fn get_effective_groupname(&mut self) -> Option<String> {
         let gid = self.get_effective_gid();
         self.get_group_by_gid(gid).map(|g| g.name)
@@ -502,7 +502,7 @@ impl Users for OSUsers {
             }
         }
     }
-    
+
     fn get_effective_username(&mut self) -> Option<String> {
         let uid = self.get_effective_uid();
         self.get_user_by_uid(uid).map(|u| u.name)
@@ -518,6 +518,9 @@ impl OSUsers {
             groups:      HashMap::new(),
             groups_back: HashMap::new(),
             uid:         None,
+            gid:         None,
+            euid:        None,
+            egid:        None,
         }
     }
 }
@@ -586,7 +589,7 @@ pub fn get_effective_groupname() -> Option<String> {
 pub fn set_current_uid(uid: uid_t) -> Result<(), io::Error> {
     match unsafe { setuid(uid) } {
         0 => Ok(()),
-        -1 => Err(io::Error::last_os_error())
+        -1 => Err(io::Error::last_os_error()),
         _ => unreachable!()
     }
 }
@@ -595,7 +598,7 @@ pub fn set_current_uid(uid: uid_t) -> Result<(), io::Error> {
 pub fn set_current_gid(gid: gid_t) -> Result<(), io::Error> {
     match unsafe { setgid(gid) } {
         0 => Ok(()),
-        -1 => Err(io::Error::last_os_error())
+        -1 => Err(io::Error::last_os_error()),
         _ => unreachable!()
     }
 }
@@ -604,7 +607,7 @@ pub fn set_current_gid(gid: gid_t) -> Result<(), io::Error> {
 pub fn set_effective_uid(uid: uid_t) -> Result<(), io::Error> {
     match unsafe { seteuid(uid) } {
         0 => Ok(()),
-        -1 => Err(io::Error::last_os_error())
+        -1 => Err(io::Error::last_os_error()),
         _ => unreachable!()
     }
 }
@@ -613,7 +616,7 @@ pub fn set_effective_uid(uid: uid_t) -> Result<(), io::Error> {
 pub fn set_effective_gid(gid: gid_t) -> Result<(), io::Error> {
     match unsafe { setegid(gid) } {
         0 => Ok(()),
-        -1 => Err(io::Error::last_os_error())
+        -1 => Err(io::Error::last_os_error()),
         _ => unreachable!()
     }
 }
@@ -622,16 +625,16 @@ pub fn set_effective_gid(gid: gid_t) -> Result<(), io::Error> {
 pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> Result<(), io::Error> {
     match unsafe { setreuid(ruid, euid) } {
         0 => Ok(()),
-        -1 => Err(io::Error::last_os_error())
+        -1 => Err(io::Error::last_os_error()),
         _ => unreachable!()
     }
 }
 
 /// Atomically set current and effective group for the running process, requires root priviledges.
-pub fn set_both_gid(rgid: gid_t, egid: git_t) -> Result<(), io::Error> {
+pub fn set_both_gid(rgid: gid_t, egid: gid_t) -> Result<(), io::Error> {
     match unsafe { setregid(rgid, egid) } {
         0 => Ok(()),
-        -1 => Err(io::Error::last_os_error())
+        -1 => Err(io::Error::last_os_error()),
         _ => unreachable!()
     }
 }
@@ -639,8 +642,8 @@ pub fn set_both_gid(rgid: gid_t, egid: git_t) -> Result<(), io::Error> {
 pub struct SwitchUserGuard {
     uid: uid_t,
     gid: gid_t,
-    euid: euid_t,
-    egid: egid_t,
+    euid: uid_t,
+    egid: gid_t,
 }
 
 impl Drop for SwitchUserGuard {
@@ -666,14 +669,14 @@ impl Drop for SwitchUserGuard {
 /// Use with care! Possible security issues can happen, as Rust doesn't
 /// guarantee running the destructor! If in doubt run `drop()` method
 /// on the guard value manually!
-pub fn switch_user_group(uid: uid_t, gid: git_t, euid: uid_t, egid: gid_t) -> Result<SwitchUserGuard, io::Error> {
+pub fn switch_user_group(uid: uid_t, gid: gid_t, euid: uid_t, egid: gid_t) -> Result<SwitchUserGuard, io::Error> {
     let current_state = SwitchUserGuard {
         uid: get_current_uid(),
         gid: get_current_gid(),
         euid: get_effective_uid(),
         egid: get_effective_gid(),
     };
-    
+
     try!(set_both_uid(uid, euid));
     try!(set_both_gid(gid, egid));
     Ok(current_state)
