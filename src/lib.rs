@@ -196,6 +196,19 @@ extern {
     fn getgrnam(group_name: *const c_char) -> *const c_group;
 
     fn getuid() -> uid_t;
+    fn geteuid() -> uid_t;
+    
+    fn setuid(uid: uid_t) -> c_int;
+    fn seteuid(uid: uid_t) -> c_int;
+    
+    fn getgid() -> gid_t;
+    fn getegid() -> git_t;
+
+    fn setgid(gid: gid_t) -> c_int;
+    fn setegid(gid: git_t) -> c_int;
+
+    fn setreuid(ruid: uid_t, euid: uid_t) -> c_int;
+    fn setregid(rgid: git_t, egid: git_t) -> c_int;
 }
 
 #[derive(Clone)]
