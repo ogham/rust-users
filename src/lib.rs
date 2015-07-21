@@ -151,6 +151,24 @@ pub trait Users {
 
     /// Return the username of the user running the process.
     fn get_current_username(&mut self) -> Option<String>;
+    
+    /// Return the group ID for the user running the process.
+    fn get_current_gid(&mut self) -> gid_t;
+    
+    /// Return the group name of the user running the process.
+    fn get_current_groupname(&mut self) -> Option<String>;
+    
+    /// Return the effective user id.
+    fn get_effective_uid(&mut self) -> uid_t;
+    
+    /// Return the effective group id.
+    fn get_effective_gid(&mut self) -> gid_t;
+    
+    /// Return the effective username.
+    fn get_effective_username(&mut self) -> Option<String>;
+    
+    /// Return the effective group name.
+    fn get_effective_groupname(&mut self) -> Option<String>;
 }
 
 #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
@@ -255,6 +273,9 @@ pub struct OSUsers {
     groups_back: HashMap<String, Option<gid_t>>,
 
     uid: Option<uid_t>,
+    gid: Option<gid_t>,
+    euid: Option<uid_t>,
+    egid: Option<gid_t>,
 }
 
 unsafe fn from_raw_buf(p: *const i8) -> String {
@@ -437,6 +458,54 @@ impl Users for OSUsers {
         let uid = self.get_current_uid();
         self.get_user_by_uid(uid).map(|u| u.name)
     }
+    
+    fn get_current_gid(&mut self) -> gid_t {
+        match self.gid {
+            Some(gid) => gid,
+            None => {
+                let gid = unsafe { getgid() };
+                self.gid = Some(gid);
+                gid
+            }
+        }
+    }
+    
+    fn get_current_groupname(&mut self) -> Option<String> {
+        let gid = self.get_current_gid();
+        self.get_group_by_gid(gid).map(|g| g.name)
+    }
+    
+    fn get_effective_gid(&mut self) -> gid_t {
+        match self.egid {
+            Some(gid) => gid,
+            None => {
+                let gid = unsafe { getegid() };
+                self.egid = Some(gid);
+                gid
+            }
+        }
+    }
+    
+    fn get_effective_groupname(&mut self) -> Option<String> {
+        let gid = self.get_effective_gid();
+        self.get_group_by_gid(gid).map(|g| g.name)
+    }
+
+    fn get_effective_uid(&mut self) -> uid_t {
+        match self.euid {
+            Some(uid) => uid,
+            None => {
+                let uid = unsafe { geteuid() };
+                self.euid = Some(uid);
+                uid
+            }
+        }
+    }
+    
+    fn get_effective_username(&mut self) -> Option<String> {
+        let uid = self.get_effective_uid();
+        self.get_user_by_uid(uid).map(|u| u.name)
+    }
 }
 
 impl OSUsers {
@@ -480,6 +549,36 @@ pub fn get_current_uid() -> uid_t {
 /// Return the username of the user running the process.
 pub fn get_current_username() -> Option<String> {
     OSUsers::empty_cache().get_current_username()
+}
+
+/// Return the user ID for the effective user running the process.
+pub fn get_effective_uid() -> uid_t {
+    OSUsers::empty_cache().get_effective_uid()
+}
+
+/// Return the username of the effective user running the process.
+pub fn get_effective_username() -> Option<String> {
+    OSUsers::empty_cache().get_effective_username()
+}
+
+/// Return the group ID for the user running the process.
+pub fn get_current_gid() -> gid_t {
+    OSUsers::empty_cache().get_current_gid()
+}
+
+/// Return the groupname of the user running the process.
+pub fn get_current_groupname() -> Option<String> {
+    OSUsers::empty_cache().get_current_groupname()
+}
+
+/// Return the group ID for the effective user running the process.
+pub fn get_effective_gid() -> gid_t {
+    OSUsers::empty_cache().get_effective_gid()
+}
+
+/// Return the groupname of the effective user running the process.
+pub fn get_effective_groupname() -> Option<String> {
+    OSUsers::empty_cache().get_effective_groupname()
 }
 
 #[cfg(test)]
