@@ -656,9 +656,9 @@ impl Drop for SwitchUserGuard {
 /// Safely switch user and group for the current scope.
 /// Requires root access.
 ///
-/// ```rust
+/// ```ignore
 /// {
-///     let guard = switch_user_group(1001, 1001);
+///     let _guard = switch_user_group(1001, 1001);
 ///     // current and effective user and group ids are 1001
 /// }
 /// // back to the old values
