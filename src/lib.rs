@@ -113,7 +113,7 @@
 //! edge cases.
 
 extern crate libc;
-pub use libc::{uid_t, gid_t};
+pub use libc::{uid_t, gid_t, c_int};
 #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
 use libc::{c_char, time_t};
 #[cfg(target_os = "linux")]
@@ -127,6 +127,7 @@ use std::ptr::read;
 use std::str::from_utf8_unchecked;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::io;
 
 pub mod mock;
 
@@ -151,6 +152,24 @@ pub trait Users {
 
     /// Return the username of the user running the process.
     fn get_current_username(&mut self) -> Option<String>;
+
+    /// Return the group ID for the user running the process.
+    fn get_current_gid(&mut self) -> gid_t;
+
+    /// Return the group name of the user running the process.
+    fn get_current_groupname(&mut self) -> Option<String>;
+
+    /// Return the effective user id.
+    fn get_effective_uid(&mut self) -> uid_t;
+
+    /// Return the effective group id.
+    fn get_effective_gid(&mut self) -> gid_t;
+
+    /// Return the effective username.
+    fn get_effective_username(&mut self) -> Option<String>;
+
+    /// Return the effective group name.
+    fn get_effective_groupname(&mut self) -> Option<String>;
 }
 
 #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
@@ -196,6 +215,19 @@ extern {
     fn getgrnam(group_name: *const c_char) -> *const c_group;
 
     fn getuid() -> uid_t;
+    fn geteuid() -> uid_t;
+
+    fn setuid(uid: uid_t) -> c_int;
+    fn seteuid(uid: uid_t) -> c_int;
+
+    fn getgid() -> gid_t;
+    fn getegid() -> gid_t;
+
+    fn setgid(gid: gid_t) -> c_int;
+    fn setegid(gid: gid_t) -> c_int;
+
+    fn setreuid(ruid: uid_t, euid: uid_t) -> c_int;
+    fn setregid(rgid: gid_t, egid: gid_t) -> c_int;
 }
 
 #[derive(Clone)]
@@ -242,6 +274,9 @@ pub struct OSUsers {
     groups_back: HashMap<String, Option<gid_t>>,
 
     uid: Option<uid_t>,
+    gid: Option<gid_t>,
+    euid: Option<uid_t>,
+    egid: Option<gid_t>,
 }
 
 unsafe fn from_raw_buf(p: *const i8) -> String {
@@ -424,6 +459,54 @@ impl Users for OSUsers {
         let uid = self.get_current_uid();
         self.get_user_by_uid(uid).map(|u| u.name)
     }
+
+    fn get_current_gid(&mut self) -> gid_t {
+        match self.gid {
+            Some(gid) => gid,
+            None => {
+                let gid = unsafe { getgid() };
+                self.gid = Some(gid);
+                gid
+            }
+        }
+    }
+
+    fn get_current_groupname(&mut self) -> Option<String> {
+        let gid = self.get_current_gid();
+        self.get_group_by_gid(gid).map(|g| g.name)
+    }
+
+    fn get_effective_gid(&mut self) -> gid_t {
+        match self.egid {
+            Some(gid) => gid,
+            None => {
+                let gid = unsafe { getegid() };
+                self.egid = Some(gid);
+                gid
+            }
+        }
+    }
+
+    fn get_effective_groupname(&mut self) -> Option<String> {
+        let gid = self.get_effective_gid();
+        self.get_group_by_gid(gid).map(|g| g.name)
+    }
+
+    fn get_effective_uid(&mut self) -> uid_t {
+        match self.euid {
+            Some(uid) => uid,
+            None => {
+                let uid = unsafe { geteuid() };
+                self.euid = Some(uid);
+                uid
+            }
+        }
+    }
+
+    fn get_effective_username(&mut self) -> Option<String> {
+        let uid = self.get_effective_uid();
+        self.get_user_by_uid(uid).map(|u| u.name)
+    }
 }
 
 impl OSUsers {
@@ -435,6 +518,9 @@ impl OSUsers {
             groups:      HashMap::new(),
             groups_back: HashMap::new(),
             uid:         None,
+            gid:         None,
+            euid:        None,
+            egid:        None,
         }
     }
 }
@@ -467,6 +553,129 @@ pub fn get_current_uid() -> uid_t {
 /// Return the username of the user running the process.
 pub fn get_current_username() -> Option<String> {
     OSUsers::empty_cache().get_current_username()
+}
+
+/// Return the user ID for the effective user running the process.
+pub fn get_effective_uid() -> uid_t {
+    OSUsers::empty_cache().get_effective_uid()
+}
+
+/// Return the username of the effective user running the process.
+pub fn get_effective_username() -> Option<String> {
+    OSUsers::empty_cache().get_effective_username()
+}
+
+/// Return the group ID for the user running the process.
+pub fn get_current_gid() -> gid_t {
+    OSUsers::empty_cache().get_current_gid()
+}
+
+/// Return the groupname of the user running the process.
+pub fn get_current_groupname() -> Option<String> {
+    OSUsers::empty_cache().get_current_groupname()
+}
+
+/// Return the group ID for the effective user running the process.
+pub fn get_effective_gid() -> gid_t {
+    OSUsers::empty_cache().get_effective_gid()
+}
+
+/// Return the groupname of the effective user running the process.
+pub fn get_effective_groupname() -> Option<String> {
+    OSUsers::empty_cache().get_effective_groupname()
+}
+
+/// Set current user for the running process, requires root priviledges.
+pub fn set_current_uid(uid: uid_t) -> Result<(), io::Error> {
+    match unsafe { setuid(uid) } {
+        0 => Ok(()),
+        -1 => Err(io::Error::last_os_error()),
+        _ => unreachable!()
+    }
+}
+
+/// Set current group for the running process, requires root priviledges.
+pub fn set_current_gid(gid: gid_t) -> Result<(), io::Error> {
+    match unsafe { setgid(gid) } {
+        0 => Ok(()),
+        -1 => Err(io::Error::last_os_error()),
+        _ => unreachable!()
+    }
+}
+
+/// Set effective user for the running process, requires root priviledges.
+pub fn set_effective_uid(uid: uid_t) -> Result<(), io::Error> {
+    match unsafe { seteuid(uid) } {
+        0 => Ok(()),
+        -1 => Err(io::Error::last_os_error()),
+        _ => unreachable!()
+    }
+}
+
+/// Set effective user for the running process, requires root priviledges.
+pub fn set_effective_gid(gid: gid_t) -> Result<(), io::Error> {
+    match unsafe { setegid(gid) } {
+        0 => Ok(()),
+        -1 => Err(io::Error::last_os_error()),
+        _ => unreachable!()
+    }
+}
+
+/// Atomically set current and effective user for the running process, requires root priviledges.
+pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> Result<(), io::Error> {
+    match unsafe { setreuid(ruid, euid) } {
+        0 => Ok(()),
+        -1 => Err(io::Error::last_os_error()),
+        _ => unreachable!()
+    }
+}
+
+/// Atomically set current and effective group for the running process, requires root priviledges.
+pub fn set_both_gid(rgid: gid_t, egid: gid_t) -> Result<(), io::Error> {
+    match unsafe { setregid(rgid, egid) } {
+        0 => Ok(()),
+        -1 => Err(io::Error::last_os_error()),
+        _ => unreachable!()
+    }
+}
+
+pub struct SwitchUserGuard {
+    uid: uid_t,
+    gid: gid_t,
+}
+
+impl Drop for SwitchUserGuard {
+    fn drop(&mut self) {
+        // Panic on error here, as failing to set values back
+        // is a possible security breach.
+        set_effective_uid(self.uid).unwrap();
+        set_effective_gid(self.gid).unwrap();
+    }
+}
+
+/// Safely switch user and group for the current scope.
+/// Requires root access.
+///
+/// ```ignore
+/// {
+///     let _guard = switch_user_group(1001, 1001);
+///     // current and effective user and group ids are 1001
+/// }
+/// // back to the old values
+/// ```
+///
+/// Use with care! Possible security issues can happen, as Rust doesn't
+/// guarantee running the destructor! If in doubt run `drop()` method
+/// on the guard value manually!
+pub fn switch_user_group(uid: uid_t, gid: gid_t) -> Result<SwitchUserGuard, io::Error> {
+    let current_state = SwitchUserGuard {
+        uid: get_effective_uid(),
+        gid: get_effective_gid(),
+    };
+
+    try!(set_effective_uid(uid));
+    try!(set_effective_gid(gid));
+    Ok(current_state)
 }
 
 #[cfg(test)]

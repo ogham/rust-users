@@ -106,6 +106,30 @@ impl Users for MockUsers {
     fn get_current_username(&mut self) -> Option<String> {
         self.users.get(&self.uid).map(|u| u.name.clone())
     }
+
+    fn get_current_gid(&mut self) -> uid_t {
+        self.uid
+    }
+
+    fn get_current_groupname(&mut self) -> Option<String> {
+        self.groups.get(&self.uid).map(|u| u.name.clone())
+    }
+
+    fn get_effective_uid(&mut self) -> uid_t {
+        self.uid
+    }
+
+    fn get_effective_username(&mut self) -> Option<String> {
+        self.users.get(&self.uid).map(|u| u.name.clone())
+    }
+
+    fn get_effective_gid(&mut self) -> uid_t {
+        self.uid
+    }
+
+    fn get_effective_groupname(&mut self) -> Option<String> {
+        self.groups.get(&self.uid).map(|u| u.name.clone())
+    }
 }
 
 #[cfg(test)]
