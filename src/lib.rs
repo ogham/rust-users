@@ -1,7 +1,6 @@
 #![crate_name = "users"]
 #![crate_type = "rlib"]
 #![crate_type = "dylib"]
-#![feature(collections, ptr_as_ref)]
 
 //! This is a library for getting information on Unix users and groups.
 //!
@@ -119,15 +118,13 @@ use libc::{c_char, time_t};
 #[cfg(target_os = "linux")]
 use libc::c_char;
 
-extern crate collections;
-use collections::borrow::ToOwned;
-
+use std::borrow::ToOwned;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::HashMap;
 use std::ffi::{CStr, CString};
+use std::io;
 use std::ptr::read;
 use std::str::from_utf8_unchecked;
-use std::collections::HashMap;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::io;
 
 pub mod mock;
 
@@ -315,25 +312,19 @@ unsafe fn members(groups: *const *const c_char) -> Vec<String> {
     let mut i = 0;
     let mut members = vec![];
 
-    // The list of members is a pointer to a pointer of
-    // characters, terminated by a null pointer.
+    // The list of members is a pointer to a pointer of characters, terminated
+    // by a null pointer.
     loop {
-        match groups.offset(i).as_ref() {
-            Some(&username) => {
-                if !username.is_null() {
-                    members.push(from_raw_buf(username as *const i8));
-                }
-                else {
-                    return members;
-                }
+        let username = groups.offset(i);
 
-                i += 1;
-            },
-
-            // This should never happen, but if it does, this is the
-            // sensible thing to do
-            None => return members,
+        // The first null check here should be unnecessary, but if libc sends
+        // us bad data, it's probably better to continue on than crashing...
+        if username.is_null() || (*username).is_null() {
+            return members;
         }
+
+        members.push(from_raw_buf(*username));
+        i += 1;
     }
 }
 
