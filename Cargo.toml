@@ -1,5 +1,4 @@
 [package]
-
 name = "users"
 description = "Library for getting information on Unix users and groups"
 
@@ -8,7 +7,7 @@ documentation = "http://ogham.rustdocs.org/users/"
 homepage = "https://github.com/ogham/rust-users"
 license = "MIT"
 readme = "README.md"
-version = "0.4.2"
+version = "0.4.3"
 
 [dependencies]
 libc = "0.1.1"
