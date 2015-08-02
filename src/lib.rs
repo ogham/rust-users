@@ -419,7 +419,8 @@ impl Users for OSUsers {
                 let group_name_c = CString::new(group_name);
 
                 if !group_name_c.is_ok() {
-                    // See comment at line #334
+                    // This usually means the given username contained a '\0' already
+                    // It is debatable what to do here
                     return None;
                 }
 
