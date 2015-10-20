@@ -225,9 +225,13 @@ extern {
 
     fn setreuid(ruid: uid_t, euid: uid_t) -> c_int;
     fn setregid(rgid: gid_t, egid: gid_t) -> c_int;
+
+    fn setpwent();
+    fn getpwent() -> *const c_passwd;
+    fn endpwent();
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 /// Information about a particular user.
 pub struct User {
 
@@ -501,6 +505,37 @@ impl Users for OSUsers {
     }
 }
 
+pub struct UserIterator<'a> {
+    users: &'a mut OSUsers,
+}
+
+impl<'a> UserIterator<'a> {
+    fn new(users: &mut OSUsers) -> UserIterator {
+        unsafe { setpwent() };
+        UserIterator { users: users }
+    }
+}
+
+impl<'a> Drop for UserIterator<'a> {
+    fn drop(&mut self) {
+        unsafe { endpwent() };
+    }
+}
+
+impl<'a> Iterator for UserIterator<'a> {
+    type Item = User;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(user) = unsafe { passwd_to_user(getpwent()) } {
+            self.users.users.insert(user.uid, Some(user.clone()));
+            self.users.users_back.insert(user.name.clone(), Some(user.uid.clone()));
+            Some(user)
+        } else {
+            None
+        }
+    }
+}
+
 impl OSUsers {
     /// Create a new empty OS Users object.
     pub fn empty_cache() -> OSUsers {
@@ -514,6 +549,11 @@ impl OSUsers {
             euid:        None,
             egid:        None,
         }
+    }
+
+    /* XXX: this should be under a mutex or something */
+    pub fn get_all_users(&mut self) -> UserIterator {
+        return UserIterator::new(self);
     }
 }
 
@@ -744,5 +784,14 @@ mod test {
         // Group names containing '\0' cannot be used (for now)
         let group = users.get_group_by_name("users\0");
         assert!(group.is_none());
+    }
+
+    #[test]
+    fn get_user_from_all() {
+        // Attempt to find current user in all users
+        let mut users = OSUsers::empty_cache();
+        let cur_uid = users.get_current_uid();
+
+        assert!(users.get_all_users().find(|user| user.uid == cur_uid).is_some());
     }
 }
