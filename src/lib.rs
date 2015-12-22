@@ -113,7 +113,7 @@ use std::borrow::ToOwned;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
-use std::io;
+use std::io::{Error as IOError, Result as IOResult};
 use std::ptr::read;
 use std::str::from_utf8_unchecked;
 
@@ -578,55 +578,55 @@ pub fn get_effective_groupname() -> Option<String> {
 }
 
 /// Set current user for the running process, requires root priviledges.
-pub fn set_current_uid(uid: uid_t) -> Result<(), io::Error> {
+pub fn set_current_uid(uid: uid_t) -> IOResult<()> {
     match unsafe { setuid(uid) } {
         0 => Ok(()),
-        -1 => Err(io::Error::last_os_error()),
+        -1 => Err(IOError::last_os_error()),
         _ => unreachable!()
     }
 }
 
 /// Set current group for the running process, requires root priviledges.
-pub fn set_current_gid(gid: gid_t) -> Result<(), io::Error> {
+pub fn set_current_gid(gid: gid_t) -> IOResult<()> {
     match unsafe { setgid(gid) } {
         0 => Ok(()),
-        -1 => Err(io::Error::last_os_error()),
+        -1 => Err(IOError::last_os_error()),
         _ => unreachable!()
     }
 }
 
 /// Set effective user for the running process, requires root priviledges.
-pub fn set_effective_uid(uid: uid_t) -> Result<(), io::Error> {
+pub fn set_effective_uid(uid: uid_t) -> IOResult<()> {
     match unsafe { seteuid(uid) } {
         0 => Ok(()),
-        -1 => Err(io::Error::last_os_error()),
+        -1 => Err(IOError::last_os_error()),
         _ => unreachable!()
     }
 }
 
 /// Set effective user for the running process, requires root priviledges.
-pub fn set_effective_gid(gid: gid_t) -> Result<(), io::Error> {
+pub fn set_effective_gid(gid: gid_t) -> IOResult<()> {
     match unsafe { setegid(gid) } {
         0 => Ok(()),
-        -1 => Err(io::Error::last_os_error()),
+        -1 => Err(IOError::last_os_error()),
         _ => unreachable!()
     }
 }
 
 /// Atomically set current and effective user for the running process, requires root priviledges.
-pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> Result<(), io::Error> {
+pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> IOResult<()> {
     match unsafe { setreuid(ruid, euid) } {
         0 => Ok(()),
-        -1 => Err(io::Error::last_os_error()),
+        -1 => Err(IOError::last_os_error()),
         _ => unreachable!()
     }
 }
 
 /// Atomically set current and effective group for the running process, requires root priviledges.
-pub fn set_both_gid(rgid: gid_t, egid: gid_t) -> Result<(), io::Error> {
+pub fn set_both_gid(rgid: gid_t, egid: gid_t) -> IOResult<()> {
     match unsafe { setregid(rgid, egid) } {
         0 => Ok(()),
-        -1 => Err(io::Error::last_os_error()),
+        -1 => Err(IOError::last_os_error()),
         _ => unreachable!()
     }
 }
@@ -659,7 +659,7 @@ impl Drop for SwitchUserGuard {
 /// Use with care! Possible security issues can happen, as Rust doesn't
 /// guarantee running the destructor! If in doubt run `drop()` method
 /// on the guard value manually!
-pub fn switch_user_group(uid: uid_t, gid: gid_t) -> Result<SwitchUserGuard, io::Error> {
+pub fn switch_user_group(uid: uid_t, gid: gid_t) -> Result<SwitchUserGuard, IOError> {
     let current_state = SwitchUserGuard {
         uid: get_effective_uid(),
         gid: get_effective_gid(),
