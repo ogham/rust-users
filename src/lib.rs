@@ -169,36 +169,36 @@ pub trait Users {
 #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
 #[repr(C)]
 struct c_passwd {
-    pub pw_name:    *const c_char,  // user name
-    pub pw_passwd:  *const c_char,  // password field
-    pub pw_uid:     uid_t,          // user ID
-    pub pw_gid:     gid_t,          // group ID
-    pub pw_change:  time_t,         // password change time
-    pub pw_class:   *const c_char,
-    pub pw_gecos:   *const c_char,
-    pub pw_dir:     *const c_char,  // user's home directory
-    pub pw_shell:   *const c_char,  // user's shell
-    pub pw_expire:  time_t,         // password expiry time
+    pw_name:    *const c_char,  // user name
+    pw_passwd:  *const c_char,  // password field
+    pw_uid:     uid_t,          // user ID
+    pw_gid:     gid_t,          // group ID
+    pw_change:  time_t,         // password change time
+    pw_class:   *const c_char,
+    pw_gecos:   *const c_char,
+    pw_dir:     *const c_char,  // user's home directory
+    pw_shell:   *const c_char,  // user's shell
+    pw_expire:  time_t,         // password expiry time
 }
 
 #[cfg(target_os = "linux")]
 #[repr(C)]
 struct c_passwd {
-    pub pw_name:    *const c_char,  // user name
-    pub pw_passwd:  *const c_char,  // password field
-    pub pw_uid:     uid_t,          // user ID
-    pub pw_gid:     gid_t,          // group ID
-    pub pw_gecos:   *const c_char,
-    pub pw_dir:     *const c_char,  // user's home directory
-    pub pw_shell:   *const c_char,  // user's shell
+    pw_name:    *const c_char,  // user name
+    pw_passwd:  *const c_char,  // password field
+    pw_uid:     uid_t,          // user ID
+    pw_gid:     gid_t,          // group ID
+    pw_gecos:   *const c_char,
+    pw_dir:     *const c_char,  // user's home directory
+    pw_shell:   *const c_char,  // user's shell
 }
 
 #[repr(C)]
 struct c_group {
-    pub gr_name:   *const c_char,         // group name
-    pub gr_passwd: *const c_char,         // password
-    pub gr_gid:    gid_t,                 // group id
-    pub gr_mem:    *const *const c_char,  // names of users in the group
+    gr_name:   *const c_char,         // group name
+    gr_passwd: *const c_char,         // password
+    gr_gid:    gid_t,                 // group id
+    gr_mem:    *const *const c_char,  // names of users in the group
 }
 
 extern {
