@@ -108,10 +108,6 @@
 //! Use the mocking module to create custom tables to test your code for these
 //! edge cases.
 
-
-use std::borrow::ToOwned;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::io::{Error as IOError, Result as IOResult};
 use std::ptr::read;
@@ -127,7 +123,8 @@ use libc::{c_char, time_t};
 use libc::c_char;
 
 pub mod mock;
-
+pub mod os;
+pub use os::OSUsers;
 
 /// The trait for the `OSUsers` object.
 pub trait Users {
@@ -261,21 +258,6 @@ pub struct Group {
     pub members: Vec<String>,
 }
 
-/// A producer of user and group instances that caches every result.
-#[derive(Clone)]
-pub struct OSUsers {
-    users: HashMap<uid_t, Option<User>>,
-    users_back: HashMap<String, Option<uid_t>>,
-
-    groups: HashMap<gid_t, Option<Group>>,
-    groups_back: HashMap<String, Option<gid_t>>,
-
-    uid: Option<uid_t>,
-    gid: Option<gid_t>,
-    euid: Option<uid_t>,
-    egid: Option<gid_t>,
-}
-
 unsafe fn from_raw_buf(p: *const i8) -> String {
     from_utf8_unchecked(CStr::from_ptr(p).to_bytes()).to_string()
 }
@@ -328,253 +310,85 @@ unsafe fn members(groups: *const *const c_char) -> Vec<String> {
     }
 }
 
-impl Users for OSUsers {
-    fn get_user_by_uid(&mut self, uid: uid_t) -> Option<User> {
-        match self.users.entry(uid) {
-            Vacant(entry) => {
-                let user = unsafe { passwd_to_user(getpwuid(uid)) };
-                match user {
-                    Some(user) => {
-                        entry.insert(Some(user.clone()));
-                        self.users_back.insert(user.name.clone(), Some(user.uid));
-                        Some(user)
-                    },
-                    None => {
-                        entry.insert(None);
-                        None
-                    }
-                }
-            },
-            Occupied(entry) => entry.get().clone(),
-        }
-    }
-
-    fn get_user_by_name(&mut self, username: &str) -> Option<User> {
-        // to_owned() could change here:
-        // https://github.com/rust-lang/rfcs/blob/master/text/0509-collections-reform-part-2.md#alternatives-to-toowned-on-entries
-        match self.users_back.entry(username.to_owned()) {
-            Vacant(entry) => {
-                let username_c = CString::new(username);
-
-                if !username_c.is_ok() {
-                    // This usually means the given username contained a '\0' already
-                    // It is debatable what to do here
-                    return None;
-                }
-
-                let user = unsafe { passwd_to_user(getpwnam(username_c.unwrap().as_ptr())) };
-                match user {
-                    Some(user) => {
-                        entry.insert(Some(user.uid));
-                        self.users.insert(user.uid, Some(user.clone()));
-                        Some(user)
-                    },
-                    None => {
-                        entry.insert(None);
-                        None
-                    }
-                }
-            },
-            Occupied(entry) => match entry.get() {
-                &Some(uid) => self.users[&uid].clone(),
-                &None => None,
-            }
-        }
-    }
-
-    fn get_group_by_gid(&mut self, gid: gid_t) -> Option<Group> {
-        match self.groups.entry(gid) {
-            Vacant(entry) => {
-                let group = unsafe { struct_to_group(getgrgid(gid)) };
-                match group {
-                    Some(group) => {
-                        entry.insert(Some(group.clone()));
-                        self.groups_back.insert(group.name.clone(), Some(group.gid));
-                        Some(group)
-                    },
-                    None => {
-                        entry.insert(None);
-                        None
-                    }
-                }
-            },
-            Occupied(entry) => entry.get().clone(),
-        }
-    }
-
-    fn get_group_by_name(&mut self, group_name: &str) -> Option<Group> {
-        // to_owned() could change here:
-        // https://github.com/rust-lang/rfcs/blob/master/text/0509-collections-reform-part-2.md#alternatives-to-toowned-on-entries
-        match self.groups_back.entry(group_name.to_owned()) {
-            Vacant(entry) => {
-                let group_name_c = CString::new(group_name);
-
-                if !group_name_c.is_ok() {
-                    // This usually means the given username contained a '\0' already
-                    // It is debatable what to do here
-                    return None;
-                }
-
-                let user = unsafe { struct_to_group(getgrnam(group_name_c.unwrap().as_ptr())) };
-                match user {
-                    Some(group) => {
-                        entry.insert(Some(group.gid));
-                        self.groups.insert(group.gid, Some(group.clone()));
-                        Some(group)
-                    },
-                    None => {
-                        entry.insert(None);
-                        None
-                    }
-                }
-            },
-            Occupied(entry) => match entry.get() {
-                &Some(gid) => self.groups[&gid].clone(),
-                &None => None,
-            }
-        }
-    }
-
-    fn get_current_uid(&mut self) -> uid_t {
-        match self.uid {
-            Some(uid) => uid,
-            None => {
-                let uid = unsafe { getuid() };
-                self.uid = Some(uid);
-                uid
-            }
-        }
-    }
-
-    /// Return the username of the user running the process.
-    fn get_current_username(&mut self) -> Option<String> {
-        let uid = self.get_current_uid();
-        self.get_user_by_uid(uid).map(|u| u.name)
-    }
-
-    fn get_current_gid(&mut self) -> gid_t {
-        match self.gid {
-            Some(gid) => gid,
-            None => {
-                let gid = unsafe { getgid() };
-                self.gid = Some(gid);
-                gid
-            }
-        }
-    }
-
-    fn get_current_groupname(&mut self) -> Option<String> {
-        let gid = self.get_current_gid();
-        self.get_group_by_gid(gid).map(|g| g.name)
-    }
-
-    fn get_effective_gid(&mut self) -> gid_t {
-        match self.egid {
-            Some(gid) => gid,
-            None => {
-                let gid = unsafe { getegid() };
-                self.egid = Some(gid);
-                gid
-            }
-        }
-    }
-
-    fn get_effective_groupname(&mut self) -> Option<String> {
-        let gid = self.get_effective_gid();
-        self.get_group_by_gid(gid).map(|g| g.name)
-    }
-
-    fn get_effective_uid(&mut self) -> uid_t {
-        match self.euid {
-            Some(uid) => uid,
-            None => {
-                let uid = unsafe { geteuid() };
-                self.euid = Some(uid);
-                uid
-            }
-        }
-    }
-
-    fn get_effective_username(&mut self) -> Option<String> {
-        let uid = self.get_effective_uid();
-        self.get_user_by_uid(uid).map(|u| u.name)
-    }
-}
-
-impl OSUsers {
-    /// Create a new empty OS Users object.
-    pub fn empty_cache() -> OSUsers {
-        OSUsers {
-            users:       HashMap::new(),
-            users_back:  HashMap::new(),
-            groups:      HashMap::new(),
-            groups_back: HashMap::new(),
-            uid:         None,
-            gid:         None,
-            euid:        None,
-            egid:        None,
-        }
-    }
-}
 
 /// Return a User object if one exists for the given user ID; otherwise, return None.
 pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
-    OSUsers::empty_cache().get_user_by_uid(uid)
+    unsafe { passwd_to_user(getpwuid(uid)) }
 }
 
 /// Return a User object if one exists for the given username; otherwise, return None.
 pub fn get_user_by_name(username: &str) -> Option<User> {
-    OSUsers::empty_cache().get_user_by_name(username)
+    let username_c = CString::new(username);
+
+    if !username_c.is_ok() {
+        // This usually means the given username contained a '\0' already
+        // It is debatable what to do here
+        return None;
+    }
+
+    unsafe { passwd_to_user(getpwnam(username_c.unwrap().as_ptr())) }
 }
 
 /// Return a Group object if one exists for the given group ID; otherwise, return None.
 pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
-    OSUsers::empty_cache().get_group_by_gid(gid)
+    unsafe { struct_to_group(getgrgid(gid)) }
 }
 
 /// Return a Group object if one exists for the given groupname; otherwise, return None.
 pub fn get_group_by_name(group_name: &str) -> Option<Group> {
-    OSUsers::empty_cache().get_group_by_name(group_name)
+    let group_name_c = CString::new(group_name);
+
+    if !group_name_c.is_ok() {
+        // This usually means the given username contained a '\0' already
+        // It is debatable what to do here
+        return None;
+    }
+
+    unsafe { struct_to_group(getgrnam(group_name_c.unwrap().as_ptr())) }
 }
 
 /// Return the user ID for the user running the process.
 pub fn get_current_uid() -> uid_t {
-    OSUsers::empty_cache().get_current_uid()
+    unsafe { getuid() }
 }
 
 /// Return the username of the user running the process.
 pub fn get_current_username() -> Option<String> {
-    OSUsers::empty_cache().get_current_username()
+    let uid = get_current_uid();
+    get_user_by_uid(uid).map(|u| u.name)
 }
 
 /// Return the user ID for the effective user running the process.
 pub fn get_effective_uid() -> uid_t {
-    OSUsers::empty_cache().get_effective_uid()
+    unsafe { geteuid() }
 }
 
 /// Return the username of the effective user running the process.
 pub fn get_effective_username() -> Option<String> {
-    OSUsers::empty_cache().get_effective_username()
+    let uid = get_effective_uid();
+    get_user_by_uid(uid).map(|u| u.name)
 }
 
 /// Return the group ID for the user running the process.
 pub fn get_current_gid() -> gid_t {
-    OSUsers::empty_cache().get_current_gid()
+    unsafe { getgid() }
 }
 
 /// Return the groupname of the user running the process.
 pub fn get_current_groupname() -> Option<String> {
-    OSUsers::empty_cache().get_current_groupname()
+    let gid = get_current_gid();
+    get_group_by_gid(gid).map(|g| g.name)
 }
 
 /// Return the group ID for the effective user running the process.
 pub fn get_effective_gid() -> gid_t {
-    OSUsers::empty_cache().get_effective_gid()
+    unsafe { getegid() }
 }
 
 /// Return the groupname of the effective user running the process.
 pub fn get_effective_groupname() -> Option<String> {
-    OSUsers::empty_cache().get_effective_groupname()
+    let gid = get_effective_gid();
+    get_group_by_gid(gid).map(|g| g.name)
 }
 
 /// Set current user for the running process, requires root priviledges.
@@ -670,79 +484,74 @@ pub fn switch_user_group(uid: uid_t, gid: gid_t) -> Result<SwitchUserGuard, IOEr
     Ok(current_state)
 }
 
+
 #[cfg(test)]
 mod test {
-    use super::{Users, OSUsers, get_current_username};
+    use super::*;
 
     #[test]
     fn uid() {
-        OSUsers::empty_cache().get_current_uid();
+        get_current_uid();
     }
 
     #[test]
     fn username() {
-        let mut users = OSUsers::empty_cache();
-        let uid = users.get_current_uid();
-        assert_eq!(get_current_username().unwrap(), users.get_user_by_uid(uid).unwrap().name);
+        let uid = get_current_uid();
+        assert_eq!(get_current_username().unwrap(), get_user_by_uid(uid).unwrap().name);
     }
 
     #[test]
     fn uid_for_username() {
-        let mut users = OSUsers::empty_cache();
-        let uid = users.get_current_uid();
-        let user = users.get_user_by_uid(uid).unwrap();
+        let uid = get_current_uid();
+        let user = get_user_by_uid(uid).unwrap();
         assert_eq!(user.uid, uid);
     }
 
     #[test]
     fn username_for_uid_for_username() {
-        let mut users = OSUsers::empty_cache();
-        let uid = users.get_current_uid();
-        let user = users.get_user_by_uid(uid).unwrap();
-        let user2 = users.get_user_by_uid(user.uid).unwrap();
+        let uid = get_current_uid();
+        let user = get_user_by_uid(uid).unwrap();
+        let user2 = get_user_by_uid(user.uid).unwrap();
         assert_eq!(user2.uid, uid);
     }
 
     #[test]
     fn user_info() {
-        let mut users = OSUsers::empty_cache();
-        let uid = users.get_current_uid();
-        let user = users.get_user_by_uid(uid).unwrap();
+        let uid = get_current_uid();
+        let user = get_user_by_uid(uid).unwrap();
         // Not a real test but can be used to verify correct results
         // Use with --nocapture on test executable to show output
         println!("HOME={}, SHELL={}", user.home_dir, user.shell);
     }
 
     #[test]
-    fn get_user_by_name() {
+    fn user_by_name() {
         // We cannot really test for arbitrary user as they might not exist on the machine
         // Instead the name of the current user is used
-        let mut users = OSUsers::empty_cache();
-        let name = users.get_current_username().unwrap();
-        let user_by_name = users.get_user_by_name(&name);
+        let name = get_current_username().unwrap();
+        let user_by_name = get_user_by_name(&name);
         assert!(user_by_name.is_some());
         assert_eq!(user_by_name.unwrap().name, name);
 
         // User names containing '\0' cannot be used (for now)
-        let user = users.get_user_by_name("user\0");
+        let user = get_user_by_name("user\0");
         assert!(user.is_none());
     }
 
     #[test]
-    fn get_group_by_name() {
+    fn group_by_name() {
         // We cannot really test for arbitrary groups as they might not exist on the machine
         // Instead the primary group of the current user is used
-        let mut users = OSUsers::empty_cache();
-        let cur_uid = users.get_current_uid();
-        let cur_user = users.get_user_by_uid(cur_uid).unwrap();
-        let cur_group = users.get_group_by_gid(cur_user.primary_group).unwrap();
-        let group_by_name = users.get_group_by_name(&cur_group.name);
+        let cur_uid = get_current_uid();
+        let cur_user = get_user_by_uid(cur_uid).unwrap();
+        let cur_group = get_group_by_gid(cur_user.primary_group).unwrap();
+        let group_by_name = get_group_by_name(&cur_group.name);
 
         assert!(group_by_name.is_some());
         assert_eq!(group_by_name.unwrap().name, cur_group.name);
 
         // Group names containing '\0' cannot be used (for now)
-        let group = users.get_group_by_name("users\0");
+        let group = get_group_by_name("users\0");
         assert!(group.is_none());
     }
 }
