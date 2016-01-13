@@ -9,11 +9,8 @@ use super::{User, Group, Users};
 /// A producer of user and group instances that caches every result.
 #[derive(Clone)]
 pub struct OSUsers {
-    users: HashMap<uid_t, Option<User>>,
-    users_back: HashMap<String, Option<uid_t>>,
-
-    groups: HashMap<gid_t, Option<Group>>,
-    groups_back: HashMap<String, Option<gid_t>>,
+    users: BiMap<uid_t, User>,
+    groups: BiMap<gid_t, Group>,
 
     uid: Option<uid_t>,
     gid: Option<gid_t>,
@@ -21,14 +18,31 @@ pub struct OSUsers {
     egid: Option<gid_t>,
 }
 
+/// A kinda-bi-directional HashMap that associates keys to values, and then
+/// strings back to keys. It doesn’t go the full route and offer
+/// *values*-to-keys lookup, because we only want to search based on
+/// usernames and group names. There wouldn’t be much point offering a “User
+/// to uid” map, as the uid is present in the user struct!
+#[derive(Clone)]
+struct BiMap<K, V> {
+    forward:  HashMap<K, Option<V>>,
+    backward: HashMap<String, Option<K>>,
+}
+
 impl OSUsers {
     /// Create a new empty OS Users object.
     pub fn empty_cache() -> OSUsers {
         OSUsers {
-            users:       HashMap::new(),
-            users_back:  HashMap::new(),
-            groups:      HashMap::new(),
-            groups_back: HashMap::new(),
+            users: BiMap {
+                forward:  HashMap::new(),
+                backward: HashMap::new(),
+            },
+
+            groups: BiMap {
+                forward:  HashMap::new(),
+                backward: HashMap::new(),
+            },
+
             uid:         None,
             gid:         None,
             euid:        None,
@@ -39,13 +53,13 @@ impl OSUsers {
 
 impl Users for OSUsers {
     fn get_user_by_uid(&mut self, uid: uid_t) -> Option<User> {
-        match self.users.entry(uid) {
+        match self.users.forward.entry(uid) {
             Vacant(entry) => {
                 let user = super::get_user_by_uid(uid);
                 match user {
                     Some(user) => {
                         entry.insert(Some(user.clone()));
-                        self.users_back.insert(user.name.clone(), Some(user.uid));
+                        self.users.backward.insert(user.name.clone(), Some(user.uid));
                         Some(user)
                     },
                     None => {
@@ -61,13 +75,13 @@ impl Users for OSUsers {
     fn get_user_by_name(&mut self, username: &str) -> Option<User> {
         // to_owned() could change here:
         // https://github.com/rust-lang/rfcs/blob/master/text/0509-collections-reform-part-2.md#alternatives-to-toowned-on-entries
-        match self.users_back.entry(username.to_owned()) {
+        match self.users.backward.entry(username.to_owned()) {
             Vacant(entry) => {
                 let user = super::get_user_by_name(username);
                 match user {
                     Some(user) => {
                         entry.insert(Some(user.uid));
-                        self.users.insert(user.uid, Some(user.clone()));
+                        self.users.forward.insert(user.uid, Some(user.clone()));
                         Some(user)
                     },
                     None => {
@@ -77,20 +91,20 @@ impl Users for OSUsers {
                 }
             },
             Occupied(entry) => match entry.get() {
-                &Some(uid) => self.users[&uid].clone(),
+                &Some(uid) => self.users.forward[&uid].clone(),
                 &None => None,
             }
         }
     }
 
     fn get_group_by_gid(&mut self, gid: gid_t) -> Option<Group> {
-        match self.groups.entry(gid) {
+        match self.groups.forward.entry(gid) {
             Vacant(entry) => {
                 let group = super::get_group_by_gid(gid);
                 match group {
                     Some(group) => {
                         entry.insert(Some(group.clone()));
-                        self.groups_back.insert(group.name.clone(), Some(group.gid));
+                        self.groups.backward.insert(group.name.clone(), Some(group.gid));
                         Some(group)
                     },
                     None => {
@@ -106,13 +120,13 @@ impl Users for OSUsers {
     fn get_group_by_name(&mut self, group_name: &str) -> Option<Group> {
         // to_owned() could change here:
         // https://github.com/rust-lang/rfcs/blob/master/text/0509-collections-reform-part-2.md#alternatives-to-toowned-on-entries
-        match self.groups_back.entry(group_name.to_owned()) {
+        match self.groups.backward.entry(group_name.to_owned()) {
             Vacant(entry) => {
                 let user = super::get_group_by_name(group_name);
                 match user {
                     Some(group) => {
                         entry.insert(Some(group.gid));
-                        self.groups.insert(group.gid, Some(group.clone()));
+                        self.groups.forward.insert(group.gid, Some(group.clone()));
                         Some(group)
                     },
                     None => {
@@ -122,7 +136,7 @@ impl Users for OSUsers {
                 }
             },
             Occupied(entry) => match entry.get() {
-                &Some(gid) => self.groups[&gid].clone(),
+                &Some(gid) => self.groups.forward[&gid].clone(),
                 &None => None,
             }
         }
