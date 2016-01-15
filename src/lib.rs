@@ -93,7 +93,7 @@
 //! let mut cache = OSUsers::empty_cache();
 //! let group = cache.get_group_by_name("admin").expect("No such group 'admin'!");
 //! println!("The '{}' group has the ID {}", group.name, group.gid);
-//! for member in group.members.into_iter() {
+//! for member in &group.members {
 //!     println!("{} is a member of the group", member);
 //! }
 //! ```
@@ -112,6 +112,7 @@ use std::ffi::{CStr, CString};
 use std::io::{Error as IOError, Result as IOResult};
 use std::ptr::read;
 use std::str::from_utf8_unchecked;
+use std::sync::Arc;
 
 extern crate libc;
 pub use libc::{uid_t, gid_t, c_int};
@@ -130,40 +131,40 @@ pub use os::OSUsers;
 pub trait Users {
 
     /// Return a User object if one exists for the given user ID; otherwise, return None.
-    fn get_user_by_uid(&mut self, uid: uid_t) -> Option<User>;
+    fn get_user_by_uid(&self, uid: uid_t) -> Option<Arc<User>>;
 
     /// Return a User object if one exists for the given username; otherwise, return None.
-    fn get_user_by_name(&mut self, username: &str) -> Option<User>;
+    fn get_user_by_name(&self, username: &str) -> Option<Arc<User>>;
 
     /// Return a Group object if one exists for the given group ID; otherwise, return None.
-    fn get_group_by_gid(&mut self, gid: gid_t) -> Option<Group>;
+    fn get_group_by_gid(&self, gid: gid_t) -> Option<Arc<Group>>;
 
     /// Return a Group object if one exists for the given groupname; otherwise, return None.
-    fn get_group_by_name(&mut self, group_name: &str) -> Option<Group>;
+    fn get_group_by_name(&self, group_name: &str) -> Option<Arc<Group>>;
 
     /// Return the user ID for the user running the process.
-    fn get_current_uid(&mut self) -> uid_t;
+    fn get_current_uid(&self) -> uid_t;
 
     /// Return the username of the user running the process.
-    fn get_current_username(&mut self) -> Option<String>;
+    fn get_current_username(&self) -> Option<Arc<String>>;
 
     /// Return the group ID for the user running the process.
-    fn get_current_gid(&mut self) -> gid_t;
+    fn get_current_gid(&self) -> gid_t;
 
     /// Return the group name of the user running the process.
-    fn get_current_groupname(&mut self) -> Option<String>;
+    fn get_current_groupname(&self) -> Option<Arc<String>>;
 
     /// Return the effective user id.
-    fn get_effective_uid(&mut self) -> uid_t;
+    fn get_effective_uid(&self) -> uid_t;
 
     /// Return the effective group id.
-    fn get_effective_gid(&mut self) -> gid_t;
+    fn get_effective_gid(&self) -> gid_t;
 
     /// Return the effective username.
-    fn get_effective_username(&mut self) -> Option<String>;
+    fn get_effective_username(&self) -> Option<Arc<String>>;
 
     /// Return the effective group name.
-    fn get_effective_groupname(&mut self) -> Option<String>;
+    fn get_effective_groupname(&self) -> Option<Arc<String>>;
 }
 
 #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
@@ -232,7 +233,7 @@ pub struct User {
     pub uid: uid_t,
 
     /// This user's name
-    pub name: String,
+    pub name: Arc<String>,
 
     /// The ID of this user's primary group
     pub primary_group: gid_t,
@@ -252,7 +253,7 @@ pub struct Group {
     pub gid: uid_t,
 
     /// This group's name
-    pub name: String,
+    pub name: Arc<String>,
 
     /// Vector of the names of the users who belong to this group as a non-primary member
     pub members: Vec<String>,
@@ -267,7 +268,7 @@ unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
         let pw = read(pointer);
         Some(User {
             uid: pw.pw_uid as uid_t,
-            name: from_raw_buf(pw.pw_name as *const i8),
+            name: Arc::new(from_raw_buf(pw.pw_name as *const i8)),
             primary_group: pw.pw_gid as gid_t,
             home_dir: from_raw_buf(pw.pw_dir as *const i8),
             shell: from_raw_buf(pw.pw_shell as *const i8)
@@ -283,7 +284,7 @@ unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
         let gr = read(pointer);
         let name = from_raw_buf(gr.gr_name as *const i8);
         let members = members(gr.gr_mem);
-        Some(Group { gid: gr.gr_gid, name: name, members: members })
+        Some(Group { gid: gr.gr_gid, name: Arc::new(name), members: members })
     }
     else {
         None
@@ -355,7 +356,7 @@ pub fn get_current_uid() -> uid_t {
 /// Return the username of the user running the process.
 pub fn get_current_username() -> Option<String> {
     let uid = get_current_uid();
-    get_user_by_uid(uid).map(|u| u.name)
+    get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name).unwrap())
 }
 
 /// Return the user ID for the effective user running the process.
@@ -366,7 +367,7 @@ pub fn get_effective_uid() -> uid_t {
 /// Return the username of the effective user running the process.
 pub fn get_effective_username() -> Option<String> {
     let uid = get_effective_uid();
-    get_user_by_uid(uid).map(|u| u.name)
+    get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name).unwrap())
 }
 
 /// Return the group ID for the user running the process.
@@ -377,7 +378,7 @@ pub fn get_current_gid() -> gid_t {
 /// Return the groupname of the user running the process.
 pub fn get_current_groupname() -> Option<String> {
     let gid = get_current_gid();
-    get_group_by_gid(gid).map(|g| g.name)
+    get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name).unwrap())
 }
 
 /// Return the group ID for the effective user running the process.
@@ -388,7 +389,7 @@ pub fn get_effective_gid() -> gid_t {
 /// Return the groupname of the effective user running the process.
 pub fn get_effective_groupname() -> Option<String> {
     let gid = get_effective_gid();
-    get_group_by_gid(gid).map(|g| g.name)
+    get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name).unwrap())
 }
 
 /// Set current user for the running process, requires root priviledges.
@@ -497,7 +498,7 @@ mod test {
     #[test]
     fn username() {
         let uid = get_current_uid();
-        assert_eq!(get_current_username().unwrap(), get_user_by_uid(uid).unwrap().name);
+        assert_eq!(&*get_current_username().unwrap(), &*get_user_by_uid(uid).unwrap().name);
     }
 
     #[test]
@@ -531,7 +532,7 @@ mod test {
         let name = get_current_username().unwrap();
         let user_by_name = get_user_by_name(&name);
         assert!(user_by_name.is_some());
-        assert_eq!(user_by_name.unwrap().name, name);
+        assert_eq!(&**user_by_name.unwrap().name, &*name);
 
         // User names containing '\0' cannot be used (for now)
         let user = get_user_by_name("user\0");
