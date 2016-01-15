@@ -1,5 +1,5 @@
 extern crate users;
-use users::{Users, OSUsers};
+use users::{Users, Groups, OSUsers};
 
 fn main() {
 	let cache = OSUsers::empty_cache();

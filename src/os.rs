@@ -68,7 +68,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use super::{User, Group, Users};
+use super::{User, Groups, Group, Users};
 
 
 /// A producer of user and group instances that caches every result.
@@ -174,6 +174,40 @@ impl Users for OSUsers {
         }
     }
 
+    fn get_current_uid(&self) -> uid_t {
+        match self.uid.get() {
+            Some(uid) => uid,
+            None => {
+                let uid = super::get_current_uid();
+                self.uid.set(Some(uid));
+                uid
+            }
+        }
+    }
+
+    fn get_current_username(&self) -> Option<Arc<String>> {
+        let uid = self.get_current_uid();
+        self.get_user_by_uid(uid).map(|u| u.name.clone())
+    }
+
+    fn get_effective_uid(&self) -> uid_t {
+        match self.euid.get() {
+            Some(uid) => uid,
+            None => {
+                let uid = super::get_effective_uid();
+                self.euid.set(Some(uid));
+                uid
+            }
+        }
+    }
+
+    fn get_effective_username(&self) -> Option<Arc<String>> {
+        let uid = self.get_effective_uid();
+        self.get_user_by_uid(uid).map(|u| u.name.clone())
+    }
+}
+
+impl Groups for OSUsers {
     fn get_group_by_gid(&self, gid: gid_t) -> Option<Arc<Group>> {
         let mut groups_forward = self.groups.forward.borrow_mut();
 
@@ -235,22 +269,6 @@ impl Users for OSUsers {
         }
     }
 
-    fn get_current_uid(&self) -> uid_t {
-        match self.uid.get() {
-            Some(uid) => uid,
-            None => {
-                let uid = super::get_current_uid();
-                self.uid.set(Some(uid));
-                uid
-            }
-        }
-    }
-
-    fn get_current_username(&self) -> Option<Arc<String>> {
-        let uid = self.get_current_uid();
-        self.get_user_by_uid(uid).map(|u| u.name.clone())
-    }
-
     fn get_current_gid(&self) -> gid_t {
         match self.gid.get() {
             Some(gid) => gid,
@@ -281,21 +299,5 @@ impl Users for OSUsers {
     fn get_effective_groupname(&self) -> Option<Arc<String>> {
         let gid = self.get_effective_gid();
         self.get_group_by_gid(gid).map(|g| g.name.clone())
-    }
-
-    fn get_effective_uid(&self) -> uid_t {
-        match self.euid.get() {
-            Some(uid) => uid,
-            None => {
-                let uid = super::get_effective_uid();
-                self.euid.set(Some(uid));
-                uid
-            }
-        }
-    }
-
-    fn get_effective_username(&self) -> Option<Arc<String>> {
-        let uid = self.get_effective_uid();
-        self.get_user_by_uid(uid).map(|u| u.name.clone())
     }
 }

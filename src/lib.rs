@@ -64,7 +64,7 @@
 //! methods on it. For example:
 //!
 //! ```rust
-//! use users::{Users, OSUsers};
+//! use users::{Users, Groups, OSUsers};
 //! let mut cache = OSUsers::empty_cache();
 //! let uid = cache.get_current_uid();
 //! let user = cache.get_user_by_uid(uid).unwrap();
@@ -89,7 +89,7 @@
 //! And again, a complete example:
 //!
 //! ```rust
-//! use users::{Users, OSUsers};
+//! use users::{Users, Groups, OSUsers};
 //! let mut cache = OSUsers::empty_cache();
 //! let group = cache.get_group_by_name("admin").expect("No such group 'admin'!");
 //! println!("The '{}' group has the ID {}", group.name, group.gid);
@@ -127,43 +127,47 @@ pub mod mock;
 pub mod os;
 pub use os::OSUsers;
 
-/// The trait for the `OSUsers` object.
+/// Trait for producers of users.
 pub trait Users {
 
-    /// Return a User object if one exists for the given user ID; otherwise, return None.
+    /// Returns a User if one exists for the given user ID; otherwise, returns None.
     fn get_user_by_uid(&self, uid: uid_t) -> Option<Arc<User>>;
 
-    /// Return a User object if one exists for the given username; otherwise, return None.
+    /// Returns a User if one exists for the given username; otherwise, returns None.
     fn get_user_by_name(&self, username: &str) -> Option<Arc<User>>;
 
-    /// Return a Group object if one exists for the given group ID; otherwise, return None.
-    fn get_group_by_gid(&self, gid: gid_t) -> Option<Arc<Group>>;
-
-    /// Return a Group object if one exists for the given groupname; otherwise, return None.
-    fn get_group_by_name(&self, group_name: &str) -> Option<Arc<Group>>;
-
-    /// Return the user ID for the user running the process.
+    /// Returns the user ID for the user running the process.
     fn get_current_uid(&self) -> uid_t;
 
-    /// Return the username of the user running the process.
+    /// Returns the username of the user running the process.
     fn get_current_username(&self) -> Option<Arc<String>>;
 
-    /// Return the group ID for the user running the process.
-    fn get_current_gid(&self) -> gid_t;
-
-    /// Return the group name of the user running the process.
-    fn get_current_groupname(&self) -> Option<Arc<String>>;
-
-    /// Return the effective user id.
+    /// Returns the effective user id.
     fn get_effective_uid(&self) -> uid_t;
 
-    /// Return the effective group id.
+    /// Returns the effective username.
+    fn get_effective_username(&self) -> Option<Arc<String>>;
+}
+
+/// Trait for producers of groups.
+pub trait Groups {
+
+    /// Returns a Group object if one exists for the given group ID; otherwise, returns None.
+    fn get_group_by_gid(&self, gid: gid_t) -> Option<Arc<Group>>;
+
+    /// Returns a Group object if one exists for the given groupname; otherwise, returns None.
+    fn get_group_by_name(&self, group_name: &str) -> Option<Arc<Group>>;
+
+    /// Returns the group ID for the user running the process.
+    fn get_current_gid(&self) -> gid_t;
+
+    /// Returns the group name of the user running the process.
+    fn get_current_groupname(&self) -> Option<Arc<String>>;
+
+    /// Returns the effective group id.
     fn get_effective_gid(&self) -> gid_t;
 
-    /// Return the effective username.
-    fn get_effective_username(&self) -> Option<Arc<String>>;
-
-    /// Return the effective group name.
+    /// Returns the effective group name.
     fn get_effective_groupname(&self) -> Option<Arc<String>>;
 }
 
@@ -225,8 +229,8 @@ extern {
     fn setregid(rgid: gid_t, egid: gid_t) -> c_int;
 }
 
-#[derive(Clone)]
 /// Information about a particular user.
+#[derive(Clone)]
 pub struct User {
 
     /// This user's ID
@@ -312,12 +316,12 @@ unsafe fn members(groups: *const *const c_char) -> Vec<String> {
 }
 
 
-/// Return a User object if one exists for the given user ID; otherwise, return None.
+/// Returns a User object if one exists for the given user ID; otherwise, return None.
 pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
     unsafe { passwd_to_user(getpwuid(uid)) }
 }
 
-/// Return a User object if one exists for the given username; otherwise, return None.
+/// Returns a User object if one exists for the given username; otherwise, return None.
 pub fn get_user_by_name(username: &str) -> Option<User> {
     let username_c = CString::new(username);
 
@@ -330,12 +334,12 @@ pub fn get_user_by_name(username: &str) -> Option<User> {
     unsafe { passwd_to_user(getpwnam(username_c.unwrap().as_ptr())) }
 }
 
-/// Return a Group object if one exists for the given group ID; otherwise, return None.
+/// Returns a Group object if one exists for the given group ID; otherwise, return None.
 pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
     unsafe { struct_to_group(getgrgid(gid)) }
 }
 
-/// Return a Group object if one exists for the given groupname; otherwise, return None.
+/// Returns a Group object if one exists for the given groupname; otherwise, return None.
 pub fn get_group_by_name(group_name: &str) -> Option<Group> {
     let group_name_c = CString::new(group_name);
 
@@ -348,51 +352,51 @@ pub fn get_group_by_name(group_name: &str) -> Option<Group> {
     unsafe { struct_to_group(getgrnam(group_name_c.unwrap().as_ptr())) }
 }
 
-/// Return the user ID for the user running the process.
+/// Returns the user ID for the user running the process.
 pub fn get_current_uid() -> uid_t {
     unsafe { getuid() }
 }
 
-/// Return the username of the user running the process.
+/// Returns the username of the user running the process.
 pub fn get_current_username() -> Option<String> {
     let uid = get_current_uid();
     get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name).unwrap())
 }
 
-/// Return the user ID for the effective user running the process.
+/// Returns the user ID for the effective user running the process.
 pub fn get_effective_uid() -> uid_t {
     unsafe { geteuid() }
 }
 
-/// Return the username of the effective user running the process.
+/// Returns the username of the effective user running the process.
 pub fn get_effective_username() -> Option<String> {
     let uid = get_effective_uid();
     get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name).unwrap())
 }
 
-/// Return the group ID for the user running the process.
+/// Returns the group ID for the user running the process.
 pub fn get_current_gid() -> gid_t {
     unsafe { getgid() }
 }
 
-/// Return the groupname of the user running the process.
+/// Returns the groupname of the user running the process.
 pub fn get_current_groupname() -> Option<String> {
     let gid = get_current_gid();
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name).unwrap())
 }
 
-/// Return the group ID for the effective user running the process.
+/// Returns the group ID for the effective user running the process.
 pub fn get_effective_gid() -> gid_t {
     unsafe { getegid() }
 }
 
-/// Return the groupname of the effective user running the process.
+/// Returns the groupname of the effective user running the process.
 pub fn get_effective_groupname() -> Option<String> {
     let gid = get_effective_gid();
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name).unwrap())
 }
 
-/// Set current user for the running process, requires root priviledges.
+/// Sets current user for the running process, requires root priviledges.
 pub fn set_current_uid(uid: uid_t) -> IOResult<()> {
     match unsafe { setuid(uid) } {
         0 => Ok(()),

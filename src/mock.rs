@@ -53,7 +53,7 @@
 //! print_current_username(&mut actual_users);
 //! ```
 
-pub use super::{Users, User, Group};
+pub use super::{Users, Groups, User, Group};
 use std::collections::HashMap;
 use std::sync::Arc;
 use libc::{uid_t, gid_t};
@@ -96,14 +96,6 @@ impl Users for MockUsers {
         self.users.values().find(|u| &*u.name == username).cloned()
     }
 
-    fn get_group_by_gid(&self, gid: gid_t) -> Option<Arc<Group>> {
-        self.groups.get(&gid).cloned()
-    }
-
-    fn get_group_by_name(&self, group_name: &str) -> Option<Arc<Group>> {
-        self.groups.values().find(|g| &*g.name == group_name).cloned()
-    }
-
     fn get_current_uid(&self) -> uid_t {
         self.uid
     }
@@ -112,20 +104,30 @@ impl Users for MockUsers {
         self.users.get(&self.uid).map(|u| u.name.clone())
     }
 
-    fn get_current_gid(&self) -> uid_t {
-        self.uid
-    }
-
-    fn get_current_groupname(&self) -> Option<Arc<String>> {
-        self.groups.get(&self.uid).map(|u| u.name.clone())
-    }
-
     fn get_effective_uid(&self) -> uid_t {
         self.uid
     }
 
     fn get_effective_username(&self) -> Option<Arc<String>> {
         self.users.get(&self.uid).map(|u| u.name.clone())
+    }
+}
+
+impl Groups for MockUsers {
+    fn get_group_by_gid(&self, gid: gid_t) -> Option<Arc<Group>> {
+        self.groups.get(&gid).cloned()
+    }
+
+    fn get_group_by_name(&self, group_name: &str) -> Option<Arc<Group>> {
+        self.groups.values().find(|g| &*g.name == group_name).cloned()
+    }
+
+    fn get_current_gid(&self) -> uid_t {
+        self.uid
+    }
+
+    fn get_current_groupname(&self) -> Option<Arc<String>> {
+        self.groups.get(&self.uid).map(|u| u.name.clone())
     }
 
     fn get_effective_gid(&self) -> uid_t {
@@ -139,7 +141,7 @@ impl Users for MockUsers {
 
 #[cfg(test)]
 mod test {
-    use super::{Users, User, Group, MockUsers};
+    use super::{Users, Groups, User, Group, MockUsers};
     use std::sync::Arc;
 
     #[test]
