@@ -92,9 +92,12 @@ struct BiMap<K, V> {
     backward: RefCell< HashMap<Arc<String>, Option<K>> >,
 }
 
-impl OSUsers {
-    /// Create a new empty OS Users object.
-    pub fn empty_cache() -> OSUsers {
+// Default has to be impl'd manually here, because there's no
+// Default impl on User or Group, even though those types aren't
+// needed to produce a default instance of any HashMaps...
+
+impl Default for OSUsers {
+    fn default() -> OSUsers {
         OSUsers {
             users: BiMap {
                 forward:  RefCell::new(HashMap::new()),
@@ -111,6 +114,14 @@ impl OSUsers {
             euid: Cell::new(None),
             egid: Cell::new(None),
         }
+    }
+}
+
+impl OSUsers {
+
+    /// Create a new empty cache.
+    pub fn empty_cache() -> OSUsers {
+        OSUsers::default()
     }
 }
 
