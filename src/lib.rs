@@ -316,12 +316,14 @@ unsafe fn members(groups: *const *const c_char) -> Vec<String> {
 }
 
 
-/// Returns a User object if one exists for the given user ID; otherwise, return None.
+/// Searches for a `User` with the given ID in the system’s user database.
+/// Returns it if one is found, otherwise returns `None`.
 pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
     unsafe { passwd_to_user(getpwuid(uid)) }
 }
 
-/// Returns a User object if one exists for the given username; otherwise, return None.
+/// Searches for a `User` with the given username in the system’s user database.
+/// Returns it if one is found, otherwise returns `None`.
 pub fn get_user_by_name(username: &str) -> Option<User> {
     let username_c = CString::new(username);
 
@@ -334,12 +336,14 @@ pub fn get_user_by_name(username: &str) -> Option<User> {
     unsafe { passwd_to_user(getpwnam(username_c.unwrap().as_ptr())) }
 }
 
-/// Returns a Group object if one exists for the given group ID; otherwise, return None.
+/// Searches for a `Group` with the given ID in the system’s group database.
+/// Returns it if one is found, otherwise returns `None`.
 pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
     unsafe { struct_to_group(getgrgid(gid)) }
 }
 
-/// Returns a Group object if one exists for the given groupname; otherwise, return None.
+/// Searches for a `Group` with the given group name in the system‘s group database.
+/// Returns it if one is found, otherwise returns `None`.
 pub fn get_group_by_name(group_name: &str) -> Option<Group> {
     let group_name_c = CString::new(group_name);
 
