@@ -32,12 +32,12 @@
 //!
 //! To set your program up to use either type of Users object, make your
 //! functions and structs accept a generic parameter that implements the `Users`
-//! trait. Then, you can pass in an object of either OS or Mock type.
+//! trait. Then, you can pass in a value of either Cache or Mock type.
 //!
 //! Here's a complete example:
 //!
 //! ```rust
-//! use users::{Users, OSUsers, User};
+//! use users::{Users, UsersCache, User};
 //! use users::mock::MockUsers;
 //! use std::sync::Arc;
 //!
@@ -49,7 +49,7 @@
 //! users.add_user(User { uid: 1001, name: Arc::new("fred".to_string()), primary_group: 101 , home_dir: "/home/fred".to_string(), shell: "/bin/bash".to_string()});
 //! print_current_username(&mut users);
 //!
-//! let mut actual_users = OSUsers::empty_cache();
+//! let mut actual_users = UsersCache::new();
 //! print_current_username(&mut actual_users);
 //! ```
 

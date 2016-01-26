@@ -2,7 +2,7 @@
 //!
 //! ## Caching, multiple threads, and mutability
 //!
-//! The `OSUsers` type is caught between a rock and a hard place when it comes
+//! The `UsersCache` type is caught between a rock and a hard place when it comes
 //! to providing references to users and groups.
 //!
 //! Instead of returning a fresh `User` struct each time, for example, it will
@@ -25,7 +25,7 @@
 //! to be read at a time!
 //!
 //! ``norun
-//! let mut cache = OSUsers::empty_cache();
+//! let mut cache = UsersCache::empty_cache();
 //! let uid   = cache.get_current_uid();                     // OK...
 //! let user  = cache.get_user_by_uid(uid).unwrap()          // OK...
 //! let group = cache.get_group_by_gid(user.primary_group);  // No!
@@ -73,7 +73,7 @@ use traits::{Users, Groups};
 
 
 /// A producer of user and group instances that caches every result.
-pub struct OSUsers {
+pub struct UsersCache {
     users:  BiMap<uid_t, User>,
     groups: BiMap<gid_t, Group>,
 
@@ -97,9 +97,9 @@ struct BiMap<K, V> {
 // Default impl on User or Group, even though those types aren't
 // needed to produce a default instance of any HashMaps...
 
-impl Default for OSUsers {
-    fn default() -> OSUsers {
-        OSUsers {
+impl Default for UsersCache {
+    fn default() -> UsersCache {
+        UsersCache {
             users: BiMap {
                 forward:  RefCell::new(HashMap::new()),
                 backward: RefCell::new(HashMap::new()),
@@ -118,15 +118,15 @@ impl Default for OSUsers {
     }
 }
 
-impl OSUsers {
+impl UsersCache {
 
     /// Create a new empty cache.
-    pub fn empty_cache() -> OSUsers {
-        OSUsers::default()
+    pub fn new() -> UsersCache {
+        UsersCache::default()
     }
 }
 
-impl Users for OSUsers {
+impl Users for UsersCache {
     fn get_user_by_uid(&self, uid: uid_t) -> Option<Arc<User>> {
         let mut users_forward = self.users.forward.borrow_mut();
 
@@ -219,7 +219,7 @@ impl Users for OSUsers {
     }
 }
 
-impl Groups for OSUsers {
+impl Groups for UsersCache {
     fn get_group_by_gid(&self, gid: gid_t) -> Option<Arc<Group>> {
         let mut groups_forward = self.groups.forward.borrow_mut();
 

@@ -60,12 +60,12 @@
 //! which offers the same functionality while holding on to every result,
 //! caching the information so it can be re-used.
 //!
-//! To introduce a cache, create a new `OSUsers` object and call the same
+//! To introduce a cache, create a new `UsersCache` and call the same
 //! methods on it. For example:
 //!
 //! ```rust
-//! use users::{Users, Groups, OSUsers};
-//! let mut cache = OSUsers::empty_cache();
+//! use users::{Users, Groups, UsersCache};
+//! let mut cache = UsersCache::new();
 //! let uid = cache.get_current_uid();
 //! let user = cache.get_user_by_uid(uid).unwrap();
 //! println!("Hello again, {}!", user.name);
@@ -74,13 +74,13 @@
 //! This cache is **only additive**: it’s not possible to drop it, or erase
 //! selected entries, as when the database may have been modified, it’s best to
 //! start entirely afresh. So to accomplish this, just start using a new
-//! `OSUsers` object.
+//! `UsersCache`.
 //!
 //!
 //! ## Groups
 //!
 //! Finally, it’s possible to get groups in a similar manner.
-//! A `Group` object has the following public fields:
+//! A `Group` has the following public fields:
 //!
 //! - **gid:** The group’s ID
 //! - **name:** The group’s name
@@ -89,8 +89,8 @@
 //! And again, a complete example:
 //!
 //! ```rust
-//! use users::{Users, Groups, OSUsers};
-//! let mut cache = OSUsers::empty_cache();
+//! use users::{Users, Groups, UsersCache};
+//! let mut cache = UsersCache::new();
 //! let group = cache.get_group_by_name("admin").expect("No such group 'admin'!");
 //! println!("The '{}' group has the ID {}", group.name, group.gid);
 //! for member in &group.members {
@@ -114,12 +114,12 @@ pub use libc::{uid_t, gid_t};
 mod base;
 pub use base::*;
 
+pub mod cache;
+pub use cache::UsersCache;
+
 pub mod mock;
-pub mod os;
-pub use os::OSUsers;
 
 pub mod switch;
-use switch::*;
 
 mod traits;
 pub use traits::{Users, Groups};

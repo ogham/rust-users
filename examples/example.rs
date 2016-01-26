@@ -1,8 +1,8 @@
 extern crate users;
-use users::{Users, Groups, OSUsers};
+use users::{Users, Groups, UsersCache};
 
 fn main() {
-	let cache = OSUsers::empty_cache();
+	let cache = UsersCache::new();
 
 	let current_uid = cache.get_current_uid();
 	println!("Your UID is {}", current_uid);
