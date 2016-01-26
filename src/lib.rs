@@ -109,7 +109,7 @@
 //! edge cases.
 
 extern crate libc;
-pub use libc::{uid_t, gid_t, c_int};
+pub use libc::{uid_t, gid_t};
 
 mod base;
 pub use base::*;
@@ -117,6 +117,9 @@ pub use base::*;
 pub mod mock;
 pub mod os;
 pub use os::OSUsers;
+
+pub mod switch;
+use switch::*;
 
 mod traits;
 pub use traits::{Users, Groups};
