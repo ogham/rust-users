@@ -18,11 +18,13 @@
 //!
 //! ```rust
 //! use users::mock::{MockUsers, User, Group};
+//! use users::os::unix::{UserExt, GroupExt};
 //! use std::sync::Arc;
 //!
 //! let mut users = MockUsers::with_current_uid(1000);
-//! users.add_user(User { uid: 1000, name: Arc::new("Bobbins".to_string()), primary_group: 100, home_dir: "/home/bobbins".to_string(), shell: "/bin/bash".to_string() });
-//! users.add_group(Group { gid: 100, name: Arc::new("funkyppl".to_string()), members: vec![ "other_person".to_string() ] });
+//! let bobbins = User::new(1000, "Bobbins", 1000).with_home_dir("/home/bobbins");
+//! users.add_user(bobbins);
+//! users.add_group(Group::new(100, "funkyppl"));
 //! ```
 //!
 //! The exports get re-exported into the mock module, for simpler `use` lines.
@@ -38,6 +40,7 @@
 //!
 //! ```rust
 //! use users::{Users, UsersCache, User};
+//! use users::os::unix::UserExt;
 //! use users::mock::MockUsers;
 //! use std::sync::Arc;
 //!
@@ -46,7 +49,7 @@
 //! }
 //!
 //! let mut users = MockUsers::with_current_uid(1001);
-//! users.add_user(User { uid: 1001, name: Arc::new("fred".to_string()), primary_group: 101 , home_dir: "/home/fred".to_string(), shell: "/bin/bash".to_string()});
+//! users.add_user(User::new(1001, "fred", 101));
 //! print_current_username(&mut users);
 //!
 //! let mut actual_users = UsersCache::new();
@@ -144,15 +147,17 @@ impl Groups for MockUsers {
 
 #[cfg(test)]
 mod test {
-    use super::{MockUsers};
+    use super::MockUsers;
     use base::{User, Group};
     use traits::{Users, Groups};
     use std::sync::Arc;
 
+    use os::unix::{UserExt, GroupExt};
+
     #[test]
     fn current_username() {
         let mut users = MockUsers::with_current_uid(1337);
-        users.add_user(User { uid: 1337, name: Arc::new("fred".to_string()), primary_group: 101, home_dir: "/home/fred".to_string(), shell: "/bin/bash".to_string() });
+        users.add_user(User::new(1337, "fred", 101));
         assert_eq!(Some(Arc::new("fred".into())), users.get_current_username())
     }
 
@@ -165,21 +170,21 @@ mod test {
     #[test]
     fn uid() {
         let mut users = MockUsers::with_current_uid(0);
-        users.add_user(User { uid: 1337, name: Arc::new("fred".to_string()), primary_group: 101, home_dir: "/home/fred".to_string(), shell: "/bin/bash".to_string() });
+        users.add_user(User::new(1337, "fred", 101));
         assert_eq!(Some(Arc::new("fred".into())), users.get_user_by_uid(1337).map(|u| u.name.clone()))
     }
 
     #[test]
     fn username() {
         let mut users = MockUsers::with_current_uid(1337);
-        users.add_user(User { uid: 1440, name: Arc::new("fred".to_string()), primary_group: 101, home_dir: "/home/fred".to_string(), shell: "/bin/bash".to_string() });
+        users.add_user(User::new(1440, "fred", 101));
         assert_eq!(Some(1440), users.get_user_by_name("fred").map(|u| u.uid))
     }
 
     #[test]
     fn no_username() {
         let mut users = MockUsers::with_current_uid(1337);
-        users.add_user(User { uid: 1440, name: Arc::new("fred".to_string()), primary_group: 101, home_dir: "/home/fred".to_string(), shell: "/bin/bash".to_string() });
+        users.add_user(User::new(1337, "fred", 101));
         assert_eq!(None, users.get_user_by_name("criminy").map(|u| u.uid))
     }
 
@@ -192,21 +197,21 @@ mod test {
     #[test]
     fn gid() {
         let mut users = MockUsers::with_current_uid(0);
-        users.add_group(Group { gid: 1337, name: Arc::new("fred".to_string()), members: vec![], });
+        users.add_group(Group::new(1337, "fred"));
         assert_eq!(Some(Arc::new("fred".into())), users.get_group_by_gid(1337).map(|g| g.name.clone()))
     }
 
     #[test]
     fn group_name() {
         let mut users = MockUsers::with_current_uid(0);
-        users.add_group(Group { gid: 1337, name: Arc::new("fred".to_string()), members: vec![], });
+        users.add_group(Group::new(1337, "fred"));
         assert_eq!(Some(1337), users.get_group_by_name("fred").map(|g| g.gid))
     }
 
     #[test]
     fn no_group_name() {
         let mut users = MockUsers::with_current_uid(0);
-        users.add_group(Group { gid: 1337, name: Arc::new("fred".to_string()), members: vec![], });
+        users.add_group(Group::new(1337, "fred"));
         assert_eq!(None, users.get_group_by_name("santa").map(|g| g.gid))
     }
 

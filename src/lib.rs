@@ -119,6 +119,8 @@ pub use cache::UsersCache;
 
 pub mod mock;
 
+pub mod os;
+
 pub mod switch;
 
 mod traits;

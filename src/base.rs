@@ -1,4 +1,5 @@
 use std::ffi::{CStr, CString};
+use std::path::Path;
 use std::ptr::read;
 use std::str::from_utf8_unchecked;
 use std::sync::Arc;
@@ -10,6 +11,8 @@ use libc::{c_char, time_t};
 
 #[cfg(target_os = "linux")]
 use libc::c_char;
+
+use os::*;
 
 
 #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
@@ -75,10 +78,10 @@ pub struct User {
     pub primary_group: gid_t,
 
     /// This user's home directory
-    pub home_dir: String,
+    home_dir: String,
 
     /// This user's shell
-    pub shell: String,
+    shell: String,
 }
 
 /// Information about a particular group.
@@ -94,6 +97,51 @@ pub struct Group {
     /// Vector of the names of the users who belong to this group as a non-primary member
     pub members: Vec<String>,
 }
+
+impl unix::UserExt for User {
+    fn home_dir(&self) -> &Path {
+        Path::new(&self.home_dir)
+    }
+
+    fn with_home_dir(mut self, home_dir: &str) -> User {
+        self.home_dir = home_dir.to_owned();
+        self
+    }
+
+    fn shell(&self) -> &Path {
+        Path::new(&self.shell)
+    }
+
+    fn with_shell(mut self, shell: &str) -> User {
+        self.shell = shell.to_owned();
+        self
+    }
+
+    fn new(uid: uid_t, name: &str, primary_group: gid_t) -> User {
+        User {
+            uid: uid,
+            name: Arc::new(name.to_owned()),
+            primary_group: primary_group,
+            home_dir: "/var/empty".to_owned(),
+            shell: "/bin/false".to_owned(),
+        }
+    }
+}
+
+impl unix::GroupExt for Group {
+    fn members(&self) -> &[String] {
+        &*self.members
+    }
+
+    fn new(gid: gid_t, name: &str) -> Group {
+        Group {
+            gid: gid,
+            name: Arc::new(name.to_owned()),
+            members: Vec::new(),
+        }
+    }
+}
+
 
 unsafe fn from_raw_buf(p: *const i8) -> String {
     from_utf8_unchecked(CStr::from_ptr(p).to_bytes()).to_string()
