@@ -1,4 +1,4 @@
-//! This example demonstrates how to use an `OSUsers` cache in a
+//! This example demonstrates how to use a `UsersCache` cache in a
 //! multi-threaded situation. The cache uses `RefCell`s internally, so it
 //! is distinctly not thread-safe. Instead, you’ll need to place it within
 //! some kind of lock in order to have threads access it one-at-a-time.
@@ -16,7 +16,7 @@
 // spew compile errors at you.
 
 extern crate users;
-use users::{Users, OSUsers, uid_t};
+use users::{Users, UsersCache, uid_t};
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -30,8 +30,8 @@ fn main() {
     // For thread-safely, our users cache needs to be within a Mutex, so
     // only one thread can access it once. This Mutex needs to be within an
     // Arc, so multiple threads can access the Mutex.
-    let cache = Arc::new(Mutex::new(OSUsers::empty_cache()));
-    // let cache = OSUsers::empty_cache();
+    let cache = Arc::new(Mutex::new(UsersCache::new()));
+    // let cache = UsersCache::empty_cache();
 
     // Loop over the range and query all the users in the range. Although we
     // could use the `&User` values returned, we just ignore them.
