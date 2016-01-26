@@ -86,7 +86,7 @@ pub struct User {
 pub struct Group {
 
     /// This group's ID
-    pub gid: uid_t,
+    pub gid: gid_t,
 
     /// This group's name
     pub name: Arc<String>,
