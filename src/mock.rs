@@ -53,10 +53,13 @@
 //! print_current_username(&mut actual_users);
 //! ```
 
-pub use super::{Users, Groups, User, Group};
 use std::collections::HashMap;
 use std::sync::Arc;
-use libc::{uid_t, gid_t};
+
+pub use libc::{uid_t, gid_t};
+pub use base::{User, Group};
+pub use traits::{Users, Groups};
+
 
 /// A mocking users object that you can add your own users and groups to.
 pub struct MockUsers {
@@ -141,7 +144,9 @@ impl Groups for MockUsers {
 
 #[cfg(test)]
 mod test {
-    use super::{Users, Groups, User, Group, MockUsers};
+    use super::{MockUsers};
+    use base::{User, Group};
+    use traits::{Users, Groups};
     use std::sync::Arc;
 
     #[test]

@@ -68,7 +68,8 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use super::{User, Groups, Group, Users};
+use base::{User, Group};
+use traits::{Users, Groups};
 
 
 /// A producer of user and group instances that caches every result.
