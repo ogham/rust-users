@@ -1,7 +1,37 @@
+//! Integration with the C library’s users and groups.
+//!
+//! This module uses `extern` functions and types from `libc` that integrate
+//! with the system’s C library, which integrates with the OS itself to get user
+//! and group information. It’s where the “core” user handling is done.
+//!
+//!
+//! ## Name encoding rules
+//!
+//! Under Unix, usernames and group names are considered to be
+//! null-terminated, UTF-8 strings. These are `CString`s in Rust, although in
+//! this library, they are just `String` values. Why?
+//!
+//! The reason is that any user or group values with invalid `CString` data
+//! can instead just be assumed to not exist:
+//!
+//! - If you try to search for a user with a null character in their name,
+//!   such a user could not exist anyway—so it’s OK to return `None`.
+//! - If the OS returns user information with a null character in a field,
+//!   then that field will just be truncated instead, which is valid behaviour
+//!   for a `CString`.
+//!
+//! The downside is that we use `from_utf8_lossy` instead, which has a small
+//! runtime penalty when it calculates and scans the length of the string for
+//! invalid characters. However, this should not be a problem when dealing with
+//! usernames of a few bytes each.
+//!
+//! In short, if you want to check for null characters in user fields, your
+//! best bet is to check for them yourself before passing strings into any
+//! functions.
+
 use std::ffi::{CStr, CString};
 use std::path::Path;
 use std::ptr::read;
-use std::str::from_utf8_unchecked;
 use std::sync::Arc;
 
 use libc::{uid_t, gid_t};
@@ -142,9 +172,14 @@ impl unix::GroupExt for Group {
     }
 }
 
-
-unsafe fn from_raw_buf(p: *const i8) -> String {
-    from_utf8_unchecked(CStr::from_ptr(p).to_bytes()).to_string()
+/// Reads data from a `*char` field in `c_passwd` or `g_group` into a UTF-8
+/// `String` for use in a user or group value.
+///
+/// Although `from_utf8_lossy` returns a clone-on-write string, we immediately
+/// clone it anyway: the underlying buffer is managed by the C library, not by
+/// us, so we *need* to move data out of it before the next user gets read.
+unsafe fn from_raw_buf(p: *const c_char) -> String {
+    CStr::from_ptr(p).to_string_lossy().into_owned()
 }
 
 unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
@@ -152,10 +187,10 @@ unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
         let pw = read(pointer);
         Some(User {
             uid: pw.pw_uid as uid_t,
-            name: Arc::new(from_raw_buf(pw.pw_name as *const i8)),
+            name: Arc::new(from_raw_buf(pw.pw_name)),
             primary_group: pw.pw_gid as gid_t,
-            home_dir: from_raw_buf(pw.pw_dir as *const i8),
-            shell: from_raw_buf(pw.pw_shell as *const i8)
+            home_dir: from_raw_buf(pw.pw_dir),
+            shell: from_raw_buf(pw.pw_shell)
         })
     }
     else {
@@ -166,7 +201,7 @@ unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
 unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
     if !pointer.is_null() {
         let gr = read(pointer);
-        let name = from_raw_buf(gr.gr_name as *const i8);
+        let name = from_raw_buf(gr.gr_name);
         let members = members(gr.gr_mem);
         Some(Group { gid: gr.gr_gid, name: Arc::new(name), members: members })
     }
