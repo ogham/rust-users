@@ -182,15 +182,33 @@ unsafe fn from_raw_buf(p: *const c_char) -> String {
     CStr::from_ptr(p).to_string_lossy().into_owned()
 }
 
+/// Converts a raw pointer, which could be null, into a safe reference that
+/// might be `None` instead.
+///
+/// This is basically the unstable `ptr_as_ref` feature:
+/// https://github.com/rust-lang/rust/issues/27780
+/// When that stabilises, this can be replaced.
+unsafe fn ptr_as_ref<T>(pointer: *const T) -> Option<T> {
+    if pointer.is_null() {
+        None
+    }
+    else {
+        Some(read(pointer))
+    }
+}
+
 unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
-    if !pointer.is_null() {
-        let pw = read(pointer);
+    if let Some(passwd) = ptr_as_ref(pointer) {
+        let name     = Arc::new(from_raw_buf(passwd.pw_name));
+        let home_dir = from_raw_buf(passwd.pw_dir);
+        let shell    = from_raw_buf(passwd.pw_shell);
+
         Some(User {
-            uid: pw.pw_uid as uid_t,
-            name: Arc::new(from_raw_buf(pw.pw_name)),
-            primary_group: pw.pw_gid as gid_t,
-            home_dir: from_raw_buf(pw.pw_dir),
-            shell: from_raw_buf(pw.pw_shell)
+            uid:           passwd.pw_uid,
+            name:          name,
+            primary_group: passwd.pw_gid,
+            home_dir:      home_dir,
+            shell:         shell,
         })
     }
     else {
@@ -199,76 +217,96 @@ unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
 }
 
 unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
-    if !pointer.is_null() {
-        let gr = read(pointer);
-        let name = from_raw_buf(gr.gr_name);
-        let members = members(gr.gr_mem);
-        Some(Group { gid: gr.gr_gid, name: Arc::new(name), members: members })
+    if let Some(group) = ptr_as_ref(pointer) {
+        let name    = Arc::new(from_raw_buf(group.gr_name));
+        let members = members(group.gr_mem);
+
+        Some(Group {
+            gid:     group.gr_gid,
+            name:    name,
+            members: members,
+        })
     }
     else {
         None
     }
 }
 
+/// Expand a list of group members to a vector of strings.
+///
+/// The list of members is, in true C fashion, a pointer to a pointer of
+/// characters, terminated by a null pointer. We check `members[0]`, then
+/// `members[1]`, and so on, until that null pointer is reached. It doesn't
+/// specify whether we should expect a null pointer or a pointer to a null
+/// pointer, so we check for both here!
 unsafe fn members(groups: *const *const c_char) -> Vec<String> {
-    let mut i = 0;
-    let mut members = vec![];
+    let mut members = Vec::new();
 
-    // The list of members is a pointer to a pointer of characters, terminated
-    // by a null pointer.
-    loop {
+    for i in 0.. {
         let username = groups.offset(i);
 
-        // The first null check here should be unnecessary, but if libc sends
-        // us bad data, it's probably better to continue on than crashing...
         if username.is_null() || (*username).is_null() {
-            return members;
+            break;
         }
-
-        members.push(from_raw_buf(*username));
-        i += 1;
+        else {
+            members.push(from_raw_buf(*username));
+        }
     }
+
+    members
 }
 
 
 /// Searches for a `User` with the given ID in the system’s user database.
 /// Returns it if one is found, otherwise returns `None`.
 pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
-    unsafe { passwd_to_user(getpwuid(uid)) }
+    unsafe {
+        let passwd = getpwuid(uid);
+        passwd_to_user(passwd)
+    }
 }
 
 /// Searches for a `User` with the given username in the system’s user database.
 /// Returns it if one is found, otherwise returns `None`.
 pub fn get_user_by_name(username: &str) -> Option<User> {
-    let username_c = CString::new(username);
-
-    if !username_c.is_ok() {
-        // This usually means the given username contained a '\0' already
-        // It is debatable what to do here
-        return None;
+    if let Ok(username) = CString::new(username) {
+        unsafe {
+            let passwd = getpwnam(username.as_ptr());
+            passwd_to_user(passwd)
+        }
     }
-
-    unsafe { passwd_to_user(getpwnam(username_c.unwrap().as_ptr())) }
+    else {
+        // The username that was passed in contained a null character.
+        // This will *never* find anything, so just return `None`.
+        // (I can’t figure out a pleasant way to signal an error here)
+        None
+    }
 }
 
 /// Searches for a `Group` with the given ID in the system’s group database.
 /// Returns it if one is found, otherwise returns `None`.
 pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
-    unsafe { struct_to_group(getgrgid(gid)) }
+    unsafe {
+        let group = getgrgid(gid);
+        struct_to_group(group)
+    }
 }
 
-/// Searches for a `Group` with the given group name in the system‘s group database.
+/// Searches for a `Group` with the given group name in the system’s group database.
 /// Returns it if one is found, otherwise returns `None`.
 pub fn get_group_by_name(group_name: &str) -> Option<Group> {
-    let group_name_c = CString::new(group_name);
-
-    if !group_name_c.is_ok() {
-        // This usually means the given username contained a '\0' already
-        // It is debatable what to do here
-        return None;
+    if let Ok(group_name) = CString::new(group_name) {
+        unsafe {
+            let group = getgrnam(group_name.as_ptr());
+            struct_to_group(group)
+        }
     }
-
-    unsafe { struct_to_group(getgrnam(group_name_c.unwrap().as_ptr())) }
+    else {
+        // The group name that was passed in contained a null character.
+        // This will *never* find anything, so just return `None`.
+        // (I can’t figure out a pleasant way to signal an error here)
+        None
+    }
 }
 
 /// Returns the user ID for the user running the process.
