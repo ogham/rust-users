@@ -130,7 +130,7 @@ impl Drop for SwitchUserGuard {
 /// }
 /// // back to the old values
 /// ```
-pub fn switch_user_group(uid: uid_t, gid: gid_t) -> Result<SwitchUserGuard, IOError> {
+pub fn switch_user_group(uid: uid_t, gid: gid_t) -> IOResult<SwitchUserGuard> {
     let current_state = SwitchUserGuard {
         uid: get_effective_uid(),
         gid: get_effective_gid(),
