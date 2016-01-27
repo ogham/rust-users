@@ -16,7 +16,11 @@ extern {
 }
 
 
-/// Sets current user for the running process, requires root priviledges.
+/// Sets the **current user** for the running process to the one with the
+/// given user ID. Uses `setuid` internally.
+///
+/// Typically, trying to switch to anyone other than the user already running
+/// the process requires root privileges.
 pub fn set_current_uid(uid: uid_t) -> IOResult<()> {
     match unsafe { setuid(uid) } {
          0 => Ok(()),
@@ -25,7 +29,11 @@ pub fn set_current_uid(uid: uid_t) -> IOResult<()> {
     }
 }
 
-/// Set current group for the running process, requires root priviledges.
+/// Sets the **current group** for the running process to the one with the
+/// given group ID. Uses `setgid` internally.
+///
+/// Typically, trying to switch to any group other than the group already
+/// running the process requires root privileges.
 pub fn set_current_gid(gid: gid_t) -> IOResult<()> {
     match unsafe { setgid(gid) } {
          0 => Ok(()),
@@ -34,7 +42,11 @@ pub fn set_current_gid(gid: gid_t) -> IOResult<()> {
     }
 }
 
-/// Set effective user for the running process, requires root priviledges.
+/// Sets the **effective user** for the running process to the one with the
+/// given user ID. Uses `seteuid` internally.
+///
+/// Typically, trying to switch to anyone other than the user already running
+/// the process requires root privileges.
 pub fn set_effective_uid(uid: uid_t) -> IOResult<()> {
     match unsafe { seteuid(uid) } {
          0 => Ok(()),
@@ -43,7 +55,11 @@ pub fn set_effective_uid(uid: uid_t) -> IOResult<()> {
     }
 }
 
-/// Set effective user for the running process, requires root priviledges.
+/// Sets the **effective group** for the running process to the one with the
+/// given group ID. Uses `setegid` internally.
+///
+/// Typically, trying to switch to any group other than the group already
+/// running the process requires root privileges.
 pub fn set_effective_gid(gid: gid_t) -> IOResult<()> {
     match unsafe { setegid(gid) } {
          0 => Ok(()),
@@ -52,7 +68,11 @@ pub fn set_effective_gid(gid: gid_t) -> IOResult<()> {
     }
 }
 
-/// Atomically set current and effective user for the running process, requires root priviledges.
+/// Sets both the **current user** and the **effective user** for the running
+/// process to the ones with the given user IDs. Uses `setreuid` internally.
+///
+/// Typically, trying to switch to anyone other than the user already running
+/// the process requires root privileges.
 pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> IOResult<()> {
     match unsafe { setreuid(ruid, euid) } {
          0 => Ok(()),
@@ -61,7 +81,12 @@ pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> IOResult<()> {
     }
 }
 
-/// Atomically set current and effective group for the running process, requires root priviledges.
+/// Sets both the **current group** and the **effective group** for the
+/// running process to the ones with the given group IDs. Uses `setregid`
+/// internally.
+///
+/// Typically, trying to switch to any group other than the group already
+/// running the process requires root privileges.
 pub fn set_both_gid(rgid: gid_t, egid: gid_t) -> IOResult<()> {
     match unsafe { setregid(rgid, egid) } {
          0 => Ok(()),
@@ -84,8 +109,17 @@ impl Drop for SwitchUserGuard {
     }
 }
 
-/// Safely switch user and group for the current scope.
-/// Requires root access.
+/// Sets the **effective user** and the **effective group** for the current
+/// scope.
+///
+/// Typically, trying to switch to any user or group other than the ones already
+/// running the process requires root privileges.
+///
+/// **Use with care!** Possible security issues can happen, as Rust doesn't
+/// guarantee running the destructor! If in doubt run `drop()` method on the
+/// guard value manually!
+///
+/// ### Examples
 ///
 /// ```no_run
 /// use users::switch::switch_user_group;
@@ -96,10 +130,6 @@ impl Drop for SwitchUserGuard {
 /// }
 /// // back to the old values
 /// ```
-///
-/// Use with care! Possible security issues can happen, as Rust doesn't
-/// guarantee running the destructor! If in doubt run `drop()` method
-/// on the guard value manually!
 pub fn switch_user_group(uid: uid_t, gid: gid_t) -> Result<SwitchUserGuard, IOError> {
     let current_state = SwitchUserGuard {
         uid: get_effective_uid(),
