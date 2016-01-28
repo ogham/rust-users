@@ -455,19 +455,43 @@ pub mod os {
     #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
     pub mod bsd {
         use std::path::Path;
-        use libc::{uid_t, gid_t};
-        use super::super::{c_passwd, from_raw_buf};
+        use libc::{uid_t, gid_t, time_t};
+        use super::super::{c_passwd, from_raw_buf, User};
 
         #[derive(Clone)]
         pub struct UserExtras {
             pub extras: super::unix::UserExtras,
+            pub change: time_t,
+            pub expire: time_t,
         }
 
         impl UserExtras {
             pub unsafe fn from_passwd(passwd: c_passwd) -> UserExtras {
                 UserExtras {
+                    change: passwd.pw_change,
+                    expire: passwd.pw_expire,
                     extras: super::unix::UserExtras::from_passwd(passwd),
                 }
+            }
+        }
+
+        impl super::unix::UserExt for User {
+            fn home_dir(&self) -> &Path {
+                Path::new(&self.extras.extras.home_dir)
+            }
+
+            fn with_home_dir(mut self, home_dir: &str) -> User {
+                self.extras.extras.home_dir = home_dir.to_owned();
+                self
+            }
+
+            fn shell(&self) -> &Path {
+                Path::new(&self.extras.extras.shell)
+            }
+
+            fn with_shell(mut self, shell: &str) -> User {
+                self.extras.extras.shell = shell.to_owned();
+                self
             }
         }
 
@@ -475,6 +499,8 @@ pub mod os {
             fn default() -> UserExtras {
                 UserExtras {
                     extras: super::unix::UserExtras::default(),
+                    change: 0,
+                    expire: 0,
                 }
             }
         }
