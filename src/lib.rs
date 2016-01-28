@@ -24,7 +24,7 @@
 //! users database and returns a User object with the user’s information. This
 //! function returns `None` when there is no user for that ID.
 //!
-//! A `User` object has the following public fields:
+//! A `User` object has the following accessors:
 //!
 //! - **uid:** The user’s ID
 //! - **name:** The user’s name
@@ -35,7 +35,7 @@
 //! ```rust
 //! use users::{get_user_by_uid, get_current_uid};
 //! let user = get_user_by_uid(get_current_uid()).unwrap();
-//! println!("Hello, {}!", user.name);
+//! println!("Hello, {}!", user.name());
 //! ```
 //!
 //! This code assumes (with `unwrap()`) that the user hasn’t been deleted after
@@ -68,7 +68,7 @@
 //! let mut cache = UsersCache::new();
 //! let uid = cache.get_current_uid();
 //! let user = cache.get_user_by_uid(uid).unwrap();
-//! println!("Hello again, {}!", user.name);
+//! println!("Hello again, {}!", user.name());
 //! ```
 //!
 //! This cache is **only additive**: it’s not possible to drop it, or erase
@@ -80,22 +80,18 @@
 //! ## Groups
 //!
 //! Finally, it’s possible to get groups in a similar manner.
-//! A `Group` has the following public fields:
+//! A `Group` has the following accessors:
 //!
 //! - **gid:** The group’s ID
 //! - **name:** The group’s name
-//! - **members:** Vector of names of the users that belong to this group
 //!
 //! And again, a complete example:
 //!
-//! ```rust
+//! ```no_run
 //! use users::{Users, Groups, UsersCache};
 //! let mut cache = UsersCache::new();
 //! let group = cache.get_group_by_name("admin").expect("No such group 'admin'!");
-//! println!("The '{}' group has the ID {}", group.name, group.gid);
-//! for member in &group.members {
-//!     println!("{} is a member of the group", member);
-//! }
+//! println!("The '{}' group has the ID {}", group.name(), group.gid());
 //! ```
 //!
 //!
@@ -108,11 +104,23 @@
 //! Use the mocking module to create custom tables to test your code for these
 //! edge cases.
 
+#![warn(missing_copy_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts, trivial_numeric_casts)]
+#![warn(unused_extern_crates, unused_qualifications)]
+
 extern crate libc;
 pub use libc::{uid_t, gid_t};
 
 mod base;
-pub use base::*;
+pub use base::{User, Group, os};
+pub use base::{get_user_by_uid, get_user_by_name};
+pub use base::{get_group_by_gid, get_group_by_name};
+pub use base::{get_current_uid, get_current_username};
+pub use base::{get_effective_uid, get_effective_username};
+pub use base::{get_current_gid, get_current_groupname};
+pub use base::{get_effective_gid, get_effective_groupname};
+
 
 pub mod cache;
 pub use cache::UsersCache;
