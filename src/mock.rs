@@ -152,8 +152,6 @@ mod test {
     use traits::{Users, Groups};
     use std::sync::Arc;
 
-    use os::unix::{UserExt, GroupExt};
-
     #[test]
     fn current_username() {
         let mut users = MockUsers::with_current_uid(1337);

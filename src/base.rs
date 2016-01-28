@@ -41,7 +41,7 @@ use libc::{c_char, time_t};
 #[cfg(target_os = "linux")]
 use libc::c_char;
 
-use os::*;
+//use os::*;
 
 
 #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
@@ -368,10 +368,8 @@ pub mod os {
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
     pub mod unix {
         use std::path::Path;
-        use std::sync::Arc;
 
-        use libc::{uid_t, gid_t};
-        use super::super::{c_passwd, c_group, members, from_raw_buf, User, Group};
+        use super::super::{c_passwd, c_group, members, from_raw_buf, Group};
 
         /// Unix-specific extensions for `User`s.
         pub trait UserExt {
@@ -432,6 +430,9 @@ pub mod os {
         }
 
         #[cfg(any(target_os = "linux"))]
+        use super::super::User;
+
+        #[cfg(any(target_os = "linux"))]
         impl UserExt for User {
             fn home_dir(&self) -> &Path {
                 Path::new(&self.extras.home_dir)
@@ -477,8 +478,8 @@ pub mod os {
     #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
     pub mod bsd {
         use std::path::Path;
-        use libc::{uid_t, gid_t, time_t};
-        use super::super::{c_passwd, from_raw_buf, User};
+        use libc::time_t;
+        use super::super::{c_passwd, User};
 
         #[derive(Clone)]
         pub struct UserExtras {
