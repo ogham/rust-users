@@ -30,7 +30,6 @@
 //! functions.
 
 use std::ffi::{CStr, CString};
-use std::path::Path;
 use std::ptr::read;
 use std::sync::Arc;
 
@@ -110,6 +109,23 @@ pub struct User {
     extras: os::UserExtras,
 }
 
+impl User {
+
+    /// Create a new `User` with the given user ID, name, and primary
+    /// group ID, with the rest of the fields filled with dummy values.
+    ///
+    /// This method does not actually create a new user on the system—it
+    /// should only be used for comparing users in tests.
+    pub fn new(uid: uid_t, name: &str, primary_group: gid_t) -> User {
+        User {
+            uid: uid,
+            name: Arc::new(name.to_owned()),
+            primary_group: primary_group,
+            extras: os::UserExtras::default(),
+        }
+    }
+}
+
 /// Information about a particular group.
 #[derive(Clone)]
 pub struct Group {
@@ -122,49 +138,6 @@ pub struct Group {
 
     /// Vector of the names of the users who belong to this group as a non-primary member
     pub members: Vec<String>,
-}
-
-impl unix::UserExt for User {
-    fn home_dir(&self) -> &Path {
-        Path::new(&self.extras.home_dir)
-    }
-
-    fn with_home_dir(mut self, home_dir: &str) -> User {
-        self.extras.home_dir = home_dir.to_owned();
-        self
-    }
-
-    fn shell(&self) -> &Path {
-        Path::new(&self.extras.shell)
-    }
-
-    fn with_shell(mut self, shell: &str) -> User {
-        self.extras.shell = shell.to_owned();
-        self
-    }
-
-    fn new(uid: uid_t, name: &str, primary_group: gid_t) -> User {
-        User {
-            uid: uid,
-            name: Arc::new(name.to_owned()),
-            primary_group: primary_group,
-            extras: os::UserExtras::default(),
-        }
-    }
-}
-
-impl unix::GroupExt for Group {
-    fn members(&self) -> &[String] {
-        &*self.members
-    }
-
-    fn new(gid: gid_t, name: &str) -> Group {
-        Group {
-            gid: gid,
-            name: Arc::new(name.to_owned()),
-            members: Vec::new(),
-        }
-    }
 }
 
 /// Reads data from a `*char` field in `c_passwd` or `g_group` into a UTF-8
@@ -370,10 +343,13 @@ pub mod os {
     /// Although the `passwd` struct is common among Unix systems, its actual
     /// format can vary. See the definitions in the `base` module to check which
     /// fields are actually present.
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
     pub mod unix {
         use std::path::Path;
+        use std::sync::Arc;
+
         use libc::{uid_t, gid_t};
-        use super::super::{c_passwd, from_raw_buf};
+        use super::super::{c_passwd, from_raw_buf, User, Group};
 
         /// Unix-specific extensions for `User`s.
         pub trait UserExt {
@@ -396,13 +372,6 @@ pub mod os {
 
             // TODO(ogham): Isn’t it weird that the setters take string slices, but
             // the getters return paths?
-
-            /// Create a new `User` with the given user ID, name, and primary
-            /// group ID, with the rest of the fields filled with dummy values.
-            ///
-            /// This method does not actually create a new user on the system—it
-            /// should only be used for comparing users in tests.
-            fn new(uid: uid_t, name: &str, primary_group: gid_t) -> Self;
         }
 
         /// Unix-specific extensions for `Group`s.
@@ -446,10 +415,77 @@ pub mod os {
                 }
             }
         }
+
+        #[cfg(any(target_os = "linux"))]
+        impl UserExt for User {
+            fn home_dir(&self) -> &Path {
+                Path::new(&self.extras.home_dir)
+            }
+
+            fn with_home_dir(mut self, home_dir: &str) -> User {
+                self.extras.home_dir = home_dir.to_owned();
+                self
+            }
+
+            fn shell(&self) -> &Path {
+                Path::new(&self.extras.shell)
+            }
+
+            fn with_shell(mut self, shell: &str) -> User {
+                self.extras.shell = shell.to_owned();
+                self
+            }
+        }
+
+        impl GroupExt for Group {
+            fn members(&self) -> &[String] {
+                &*self.members
+            }
+
+            fn new(gid: gid_t, name: &str) -> Group {
+                Group {
+                    gid: gid,
+                    name: Arc::new(name.to_owned()),
+                    members: Vec::new(),
+                }
+            }
+        }
     }
 
     #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
+    pub mod bsd {
+        use std::path::Path;
+        use libc::{uid_t, gid_t};
+        use super::super::{c_passwd, from_raw_buf};
+
+        #[derive(Clone)]
+        pub struct UserExtras {
+            pub extras: super::unix::UserExtras,
+        }
+
+        impl UserExtras {
+            pub unsafe fn from_passwd(passwd: c_passwd) -> UserExtras {
+                UserExtras {
+                    extras: super::unix::UserExtras::from_passwd(passwd),
+                }
+            }
+        }
+
+        impl Default for UserExtras {
+            fn default() -> UserExtras {
+                UserExtras {
+                    extras: super::unix::UserExtras::default(),
+                }
+            }
+        }
+    }
+
+    #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
+    pub type UserExtras = bsd::UserExtras;
+
+    #[cfg(any(target_os = "linux"))]
     pub type UserExtras = unix::UserExtras;
+
 }
 
 
