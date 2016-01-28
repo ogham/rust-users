@@ -30,6 +30,7 @@
 //! functions.
 
 use std::ffi::{CStr, CString};
+use std::fmt;
 use std::ptr::read;
 use std::sync::Arc;
 
@@ -40,8 +41,6 @@ use libc::{c_char, time_t};
 
 #[cfg(target_os = "linux")]
 use libc::c_char;
-
-//use os::*;
 
 
 #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
@@ -93,6 +92,7 @@ extern {
     fn getegid() -> gid_t;
 }
 
+
 /// Information about a particular user.
 #[derive(Clone)]
 pub struct User {
@@ -137,6 +137,13 @@ impl User {
     }
 }
 
+impl fmt::Debug for User {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "User({}, {})", self.uid(), self.name())
+    }
+}
+
+
 /// Information about a particular group.
 #[derive(Clone)]
 pub struct Group {
@@ -173,6 +180,13 @@ impl Group {
         &**self.name_arc
     }
 }
+
+impl fmt::Debug for Group {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "Group({}, {})", self.gid(), self.name())
+    }
+}
+
 
 /// Reads data from a `*char` field in `c_passwd` or `g_group` into a UTF-8
 /// `String` for use in a user or group value.
@@ -350,8 +364,6 @@ pub fn get_effective_groupname() -> Option<String> {
     let gid = get_effective_gid();
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
 }
-
-
 
 
 /// OS-specific extensions to users and groups.
