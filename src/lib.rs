@@ -112,14 +112,19 @@ extern crate libc;
 pub use libc::{uid_t, gid_t};
 
 mod base;
-pub use base::*;
+pub use base::{User, Group, os};
+pub use base::{get_user_by_uid, get_user_by_name};
+pub use base::{get_group_by_gid, get_group_by_name};
+pub use base::{get_current_uid, get_current_username};
+pub use base::{get_effective_uid, get_effective_username};
+pub use base::{get_current_gid, get_current_groupname};
+pub use base::{get_effective_gid, get_effective_groupname};
+
 
 pub mod cache;
 pub use cache::UsersCache;
 
 pub mod mock;
-
-pub mod os;
 
 pub mod switch;
 

@@ -47,7 +47,7 @@ use os::*;
 
 #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
 #[repr(C)]
-struct c_passwd {
+pub struct c_passwd {
     pw_name:    *const c_char,  // user name
     pw_passwd:  *const c_char,  // password field
     pw_uid:     uid_t,          // user ID
@@ -62,7 +62,7 @@ struct c_passwd {
 
 #[cfg(target_os = "linux")]
 #[repr(C)]
-struct c_passwd {
+pub struct c_passwd {
     pw_name:    *const c_char,  // user name
     pw_passwd:  *const c_char,  // password field
     pw_uid:     uid_t,          // user ID
@@ -73,7 +73,7 @@ struct c_passwd {
 }
 
 #[repr(C)]
-struct c_group {
+pub struct c_group {
     gr_name:   *const c_char,         // group name
     gr_passwd: *const c_char,         // password
     gr_gid:    gid_t,                 // group id
@@ -107,11 +107,7 @@ pub struct User {
     /// The ID of this user's primary group
     pub primary_group: gid_t,
 
-    /// This user's home directory
-    home_dir: String,
-
-    /// This user's shell
-    shell: String,
+    extras: os::UserExtras,
 }
 
 /// Information about a particular group.
@@ -130,20 +126,20 @@ pub struct Group {
 
 impl unix::UserExt for User {
     fn home_dir(&self) -> &Path {
-        Path::new(&self.home_dir)
+        Path::new(&self.extras.home_dir)
     }
 
     fn with_home_dir(mut self, home_dir: &str) -> User {
-        self.home_dir = home_dir.to_owned();
+        self.extras.home_dir = home_dir.to_owned();
         self
     }
 
     fn shell(&self) -> &Path {
-        Path::new(&self.shell)
+        Path::new(&self.extras.shell)
     }
 
     fn with_shell(mut self, shell: &str) -> User {
-        self.shell = shell.to_owned();
+        self.extras.shell = shell.to_owned();
         self
     }
 
@@ -152,8 +148,7 @@ impl unix::UserExt for User {
             uid: uid,
             name: Arc::new(name.to_owned()),
             primary_group: primary_group,
-            home_dir: "/var/empty".to_owned(),
-            shell: "/bin/false".to_owned(),
+            extras: os::UserExtras::default(),
         }
     }
 }
@@ -200,15 +195,12 @@ unsafe fn ptr_as_ref<T>(pointer: *const T) -> Option<T> {
 unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
     if let Some(passwd) = ptr_as_ref(pointer) {
         let name     = Arc::new(from_raw_buf(passwd.pw_name));
-        let home_dir = from_raw_buf(passwd.pw_dir);
-        let shell    = from_raw_buf(passwd.pw_shell);
 
         Some(User {
             uid:           passwd.pw_uid,
             name:          name,
             primary_group: passwd.pw_gid,
-            home_dir:      home_dir,
-            shell:         shell,
+            extras:        os::UserExtras::from_passwd(passwd),
         })
     }
     else {
@@ -354,6 +346,113 @@ pub fn get_effective_groupname() -> Option<String> {
 }
 
 
+
+
+/// OS-specific extensions to users and groups.
+///
+/// Every OS has a different idea of what data a user or a group comes with.
+/// Although they all provide a *username*, some OS’ users have an *actual name*
+/// too, or a set of permissions or directories or timestamps associated with
+/// them.
+///
+/// This module provides extension traits for users and groups that allow
+/// implementors of this library to access this data *as long as a trait is
+/// available*, which requires the OS they’re using to support this data.
+///
+/// It’s the same method taken by `Metadata` in the standard Rust library,
+/// which has a few cross-platform fields and many more OS-specific fields:
+/// traits in `std::os` provides access to any data that is not guaranteed to
+/// be there in the actual struct.
+pub mod os {
+
+    /// Extensions to users and groups for Unix platforms.
+    ///
+    /// Although the `passwd` struct is common among Unix systems, its actual
+    /// format can vary. See the definitions in the `base` module to check which
+    /// fields are actually present.
+    pub mod unix {
+        use std::path::Path;
+        use libc::{uid_t, gid_t};
+        use super::super::{c_passwd, from_raw_buf};
+
+        /// Unix-specific extensions for `User`s.
+        pub trait UserExt {
+
+            /// Returns a path to this user’s home directory.
+            fn home_dir(&self) -> &Path;
+
+            /// Sets this user value’s home directory to the given string.
+            /// Can be used to construct test users, which by default come with a
+            /// dummy home directory string.
+            fn with_home_dir(mut self, home_dir: &str) -> Self;
+
+            /// Returns a path to this user’s shell.
+            fn shell(&self) -> &Path;
+
+            /// Sets this user’s shell path to the given string.
+            /// Can be used to construct test users, which by default come with a
+            /// dummy shell field.
+            fn with_shell(mut self, shell: &str) -> Self;
+
+            // TODO(ogham): Isn’t it weird that the setters take string slices, but
+            // the getters return paths?
+
+            /// Create a new `User` with the given user ID, name, and primary
+            /// group ID, with the rest of the fields filled with dummy values.
+            ///
+            /// This method does not actually create a new user on the system—it
+            /// should only be used for comparing users in tests.
+            fn new(uid: uid_t, name: &str, primary_group: gid_t) -> Self;
+        }
+
+        /// Unix-specific extensions for `Group`s.
+        pub trait GroupExt {
+
+            /// Returns a slice of the list of users that are in this group as
+            /// their non-primary group.
+            fn members(&self) -> &[String];
+
+            /// Create a new `Group` with the given group ID and name, with the
+            /// rest of the fields filled in with dummy values.
+            ///
+            /// This method does not actually create a new group on the system—it
+            /// should only be used for comparing groups in tests.
+            fn new(gid: gid_t, name: &str) -> Self;
+        }
+
+        #[derive(Clone)]
+        pub struct UserExtras {
+            pub home_dir: String,
+            pub shell: String,
+        }
+
+        impl Default for UserExtras {
+            fn default() -> UserExtras {
+                UserExtras {
+                    home_dir: String::from("/var/empty"),
+                    shell:    String::from("/bin/false"),
+                }
+            }
+        }
+
+        impl UserExtras {
+            pub unsafe fn from_passwd(passwd: c_passwd) -> UserExtras {
+                let home_dir = from_raw_buf(passwd.pw_dir);
+                let shell    = from_raw_buf(passwd.pw_shell);
+
+                UserExtras {
+                    home_dir:  home_dir,
+                    shell:     shell,
+                }
+            }
+        }
+    }
+
+    #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
+    pub type UserExtras = unix::UserExtras;
+}
+
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -386,11 +485,13 @@ mod test {
 
     #[test]
     fn user_info() {
+        use base::os::unix::UserExt;
+
         let uid = get_current_uid();
         let user = get_user_by_uid(uid).unwrap();
         // Not a real test but can be used to verify correct results
         // Use with --nocapture on test executable to show output
-        println!("HOME={}, SHELL={}", user.home_dir, user.shell);
+        println!("HOME={:?}, SHELL={:?}", user.home_dir(), user.shell());
     }
 
     #[test]
