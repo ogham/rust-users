@@ -555,6 +555,26 @@ pub mod os {
             }
         }
 
+        /// BSD-specific accessors for `User`s.
+        pub trait UserExt {
+
+            /// Returns this user's password change timestamp.
+            fn password_change_time(&self) -> time_t;
+
+            /// Returns this user's password expiry timestamp.
+            fn password_expire_time(&self) -> time_t;
+        }
+
+        impl UserExt for User {
+            fn password_change_time(&self) -> time_t {
+                self.extras.change.clone()
+            }
+
+            fn password_expire_time(&self) -> time_t {
+                self.extras.expire.clone()
+            }
+        }
+
         impl Default for UserExtras {
             fn default() -> UserExtras {
                 UserExtras {
