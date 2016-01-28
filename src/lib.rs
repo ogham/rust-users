@@ -91,7 +91,7 @@
 //! use users::{Users, Groups, UsersCache};
 //! let mut cache = UsersCache::new();
 //! let group = cache.get_group_by_name("admin").expect("No such group 'admin'!");
-//! println!("The '{}' group has the ID {}", group.name, group.gid);
+//! println!("The '{}' group has the ID {}", group.name(), group.gid());
 //! ```
 //!
 //!

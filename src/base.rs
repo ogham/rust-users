@@ -134,20 +134,13 @@ impl User {
 /// Information about a particular group.
 #[derive(Clone)]
 pub struct Group {
-
-    /// This group's ID
-    pub gid: gid_t,
-
-    /// This group's name
-    pub name: Arc<String>,
-
+    gid: gid_t,
+    pub name_arc: Arc<String>,
     extras: os::GroupExtras,
-
-    // Vector of the names of the users who belong to this group as a non-primary member
-    //pub members: Vec<String>,
 }
 
 impl Group {
+
     /// Create a new `Group` with the given group ID and name, with the
     /// rest of the fields filled in with dummy values.
     ///
@@ -156,9 +149,17 @@ impl Group {
     pub fn new(gid: gid_t, name: &str) -> Self {
         Group {
             gid: gid,
-            name: Arc::new(String::from(name)),
+            name_arc: Arc::new(String::from(name)),
             extras: os::GroupExtras::default(),
         }
+    }
+
+    pub fn gid(&self) -> gid_t {
+        self.gid.clone()
+    }
+
+    pub fn name(&self) -> &str {
+        &**self.name_arc
     }
 }
 
@@ -208,9 +209,9 @@ unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
         let name = Arc::new(from_raw_buf(group.gr_name));
 
         Some(Group {
-            gid:     group.gr_gid,
-            name:    name,
-            extras:  os::GroupExtras::from_struct(group),
+            gid:       group.gr_gid,
+            name_arc:  name,
+            extras:    os::GroupExtras::from_struct(group),
         })
     }
     else {
@@ -325,7 +326,7 @@ pub fn get_current_gid() -> gid_t {
 /// Returns the groupname of the user running the process.
 pub fn get_current_groupname() -> Option<String> {
     let gid = get_current_gid();
-    get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name).unwrap())
+    get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
 }
 
 /// Returns the group ID for the effective user running the process.
@@ -336,7 +337,7 @@ pub fn get_effective_gid() -> gid_t {
 /// Returns the groupname of the effective user running the process.
 pub fn get_effective_groupname() -> Option<String> {
     let gid = get_effective_gid();
-    get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name).unwrap())
+    get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
 }
 
 
@@ -600,10 +601,10 @@ mod test {
         let cur_uid = get_current_uid();
         let cur_user = get_user_by_uid(cur_uid).unwrap();
         let cur_group = get_group_by_gid(cur_user.primary_group).unwrap();
-        let group_by_name = get_group_by_name(&cur_group.name);
+        let group_by_name = get_group_by_name(&cur_group.name());
 
         assert!(group_by_name.is_some());
-        assert_eq!(group_by_name.unwrap().name, cur_group.name);
+        assert_eq!(group_by_name.unwrap().name(), cur_group.name());
 
         // Group names containing '\0' cannot be used (for now)
         let group = get_group_by_name("users\0");

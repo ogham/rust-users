@@ -228,7 +228,7 @@ impl Groups for UsersCache {
                 let group = super::get_group_by_gid(gid);
                 match group {
                     Some(group) => {
-                        let new_group_name = group.name.clone();
+                        let new_group_name = group.name_arc.clone();
                         let mut groups_backward = self.groups.backward.borrow_mut();
                         groups_backward.insert(new_group_name, Some(gid));
 
@@ -257,7 +257,7 @@ impl Groups for UsersCache {
                 match user {
                     Some(group) => {
                         let group_arc = Arc::new(group.clone());
-                        let gid = group.gid;
+                        let gid = group.gid();
 
                         let mut groups_forward = self.groups.forward.borrow_mut();
                         groups_forward.insert(gid, Some(group_arc.clone()));
@@ -294,7 +294,7 @@ impl Groups for UsersCache {
 
     fn get_current_groupname(&self) -> Option<Arc<String>> {
         let gid = self.get_current_gid();
-        self.get_group_by_gid(gid).map(|g| g.name.clone())
+        self.get_group_by_gid(gid).map(|g| g.name_arc.clone())
     }
 
     fn get_effective_gid(&self) -> gid_t {
@@ -310,6 +310,6 @@ impl Groups for UsersCache {
 
     fn get_effective_groupname(&self) -> Option<Arc<String>> {
         let gid = self.get_effective_gid();
-        self.get_group_by_gid(gid).map(|g| g.name.clone())
+        self.get_group_by_gid(gid).map(|g| g.name_arc.clone())
     }
 }
