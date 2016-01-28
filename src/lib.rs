@@ -24,7 +24,7 @@
 //! users database and returns a User object with the user’s information. This
 //! function returns `None` when there is no user for that ID.
 //!
-//! A `User` object has the following public fields:
+//! A `User` object has the following accessors:
 //!
 //! - **uid:** The user’s ID
 //! - **name:** The user’s name
@@ -80,11 +80,10 @@
 //! ## Groups
 //!
 //! Finally, it’s possible to get groups in a similar manner.
-//! A `Group` has the following public fields:
+//! A `Group` has the following accessors:
 //!
 //! - **gid:** The group’s ID
 //! - **name:** The group’s name
-//! - **members:** Vector of names of the users that belong to this group
 //!
 //! And again, a complete example:
 //!
@@ -93,9 +92,6 @@
 //! let mut cache = UsersCache::new();
 //! let group = cache.get_group_by_name("admin").expect("No such group 'admin'!");
 //! println!("The '{}' group has the ID {}", group.name, group.gid);
-//! for member in &group.members {
-//!     println!("{} is a member of the group", member);
-//! }
 //! ```
 //!
 //!

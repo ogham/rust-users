@@ -141,8 +141,25 @@ pub struct Group {
     /// This group's name
     pub name: Arc<String>,
 
-    /// Vector of the names of the users who belong to this group as a non-primary member
-    pub members: Vec<String>,
+    extras: os::GroupExtras,
+
+    // Vector of the names of the users who belong to this group as a non-primary member
+    //pub members: Vec<String>,
+}
+
+impl Group {
+    /// Create a new `Group` with the given group ID and name, with the
+    /// rest of the fields filled in with dummy values.
+    ///
+    /// This method does not actually create a new group on the system—it
+    /// should only be used for comparing groups in tests.
+    pub fn new(gid: gid_t, name: &str) -> Self {
+        Group {
+            gid: gid,
+            name: Arc::new(String::from(name)),
+            extras: os::GroupExtras::default(),
+        }
+    }
 }
 
 /// Reads data from a `*char` field in `c_passwd` or `g_group` into a UTF-8
@@ -172,7 +189,7 @@ unsafe fn ptr_as_ref<T>(pointer: *const T) -> Option<T> {
 
 unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
     if let Some(passwd) = ptr_as_ref(pointer) {
-        let name     = Arc::new(from_raw_buf(passwd.pw_name));
+        let name = Arc::new(from_raw_buf(passwd.pw_name));
 
         Some(User {
             uid:           passwd.pw_uid,
@@ -188,13 +205,12 @@ unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
 
 unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
     if let Some(group) = ptr_as_ref(pointer) {
-        let name    = Arc::new(from_raw_buf(group.gr_name));
-        let members = members(group.gr_mem);
+        let name = Arc::new(from_raw_buf(group.gr_name));
 
         Some(Group {
             gid:     group.gr_gid,
             name:    name,
-            members: members,
+            extras:  os::GroupExtras::from_struct(group),
         })
     }
     else {
@@ -354,7 +370,7 @@ pub mod os {
         use std::sync::Arc;
 
         use libc::{uid_t, gid_t};
-        use super::super::{c_passwd, from_raw_buf, User, Group};
+        use super::super::{c_passwd, c_group, members, from_raw_buf, User, Group};
 
         /// Unix-specific extensions for `User`s.
         pub trait UserExt {
@@ -385,13 +401,6 @@ pub mod os {
             /// Returns a slice of the list of users that are in this group as
             /// their non-primary group.
             fn members(&self) -> &[String];
-
-            /// Create a new `Group` with the given group ID and name, with the
-            /// rest of the fields filled in with dummy values.
-            ///
-            /// This method does not actually create a new group on the system—it
-            /// should only be used for comparing groups in tests.
-            fn new(gid: gid_t, name: &str) -> Self;
         }
 
         #[derive(Clone)]
@@ -442,17 +451,24 @@ pub mod os {
             }
         }
 
+        #[derive(Clone, Default)]
+        pub struct GroupExtras {
+            pub members: Vec<String>,
+        }
+
+        impl GroupExtras {
+            pub unsafe fn from_struct(group: c_group) -> GroupExtras {
+                let members = members(group.gr_mem);
+
+                GroupExtras {
+                    members: members,
+                }
+            }
+        }
+
         impl GroupExt for Group {
             fn members(&self) -> &[String] {
-                &*self.members
-            }
-
-            fn new(gid: gid_t, name: &str) -> Group {
-                Group {
-                    gid: gid,
-                    name: Arc::new(name.to_owned()),
-                    members: Vec::new(),
-                }
+                &*self.extras.members
             }
         }
     }
@@ -517,6 +533,8 @@ pub mod os {
     #[cfg(any(target_os = "linux"))]
     pub type UserExtras = unix::UserExtras;
 
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
+    pub type GroupExtras = unix::GroupExtras;
 }
 
 
