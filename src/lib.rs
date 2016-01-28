@@ -88,7 +88,7 @@
 //!
 //! And again, a complete example:
 //!
-//! ```rust
+//! ```no_run
 //! use users::{Users, Groups, UsersCache};
 //! let mut cache = UsersCache::new();
 //! let group = cache.get_group_by_name("admin").expect("No such group 'admin'!");
