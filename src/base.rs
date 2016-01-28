@@ -96,16 +96,9 @@ extern {
 /// Information about a particular user.
 #[derive(Clone)]
 pub struct User {
-
-    /// This user's ID
-    pub uid: uid_t,
-
-    /// This user's name
-    pub name: Arc<String>,
-
-    /// The ID of this user's primary group
-    pub primary_group: gid_t,
-
+    uid: uid_t,
+    pub name_arc: Arc<String>,
+    primary_group: gid_t,
     extras: os::UserExtras,
 }
 
@@ -119,10 +112,22 @@ impl User {
     pub fn new(uid: uid_t, name: &str, primary_group: gid_t) -> User {
         User {
             uid: uid,
-            name: Arc::new(name.to_owned()),
+            name_arc: Arc::new(name.to_owned()),
             primary_group: primary_group,
             extras: os::UserExtras::default(),
         }
+    }
+
+    pub fn uid(&self) -> uid_t {
+        self.uid.clone()
+    }
+
+    pub fn name(&self) -> &str {
+        &**self.name_arc
+    }
+
+    pub fn primary_group_id(&self) -> gid_t {
+        self.primary_group.clone()
     }
 }
 
@@ -171,7 +176,7 @@ unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
 
         Some(User {
             uid:           passwd.pw_uid,
-            name:          name,
+            name_arc:      name,
             primary_group: passwd.pw_gid,
             extras:        os::UserExtras::from_passwd(passwd),
         })
@@ -282,7 +287,7 @@ pub fn get_current_uid() -> uid_t {
 /// Returns the username of the user running the process.
 pub fn get_current_username() -> Option<String> {
     let uid = get_current_uid();
-    get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name).unwrap())
+    get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name_arc).unwrap())
 }
 
 /// Returns the user ID for the effective user running the process.
@@ -293,7 +298,7 @@ pub fn get_effective_uid() -> uid_t {
 /// Returns the username of the effective user running the process.
 pub fn get_effective_username() -> Option<String> {
     let uid = get_effective_uid();
-    get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name).unwrap())
+    get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name_arc).unwrap())
 }
 
 /// Returns the group ID for the user running the process.
@@ -527,7 +532,7 @@ mod test {
     #[test]
     fn username() {
         let uid = get_current_uid();
-        assert_eq!(&*get_current_username().unwrap(), &*get_user_by_uid(uid).unwrap().name);
+        assert_eq!(&*get_current_username().unwrap(), &*get_user_by_uid(uid).unwrap().name());
     }
 
     #[test]
@@ -563,7 +568,7 @@ mod test {
         let name = get_current_username().unwrap();
         let user_by_name = get_user_by_name(&name);
         assert!(user_by_name.is_some());
-        assert_eq!(&**user_by_name.unwrap().name, &*name);
+        assert_eq!(user_by_name.unwrap().name(), &*name);
 
         // User names containing '\0' cannot be used (for now)
         let user = get_user_by_name("user\0");

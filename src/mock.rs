@@ -84,7 +84,7 @@ impl MockUsers {
 
     /// Add a user to the users table.
     pub fn add_user(&mut self, user: User) -> Option<Arc<User>> {
-        self.users.insert(user.uid, Arc::new(user))
+        self.users.insert(user.uid(), Arc::new(user))
     }
 
     /// Add a group to the groups table.
@@ -99,7 +99,7 @@ impl Users for MockUsers {
     }
 
     fn get_user_by_name(&self, username: &str) -> Option<Arc<User>> {
-        self.users.values().find(|u| &*u.name == username).cloned()
+        self.users.values().find(|u| u.name() == username).cloned()
     }
 
     fn get_current_uid(&self) -> uid_t {
@@ -107,7 +107,7 @@ impl Users for MockUsers {
     }
 
     fn get_current_username(&self) -> Option<Arc<String>> {
-        self.users.get(&self.uid).map(|u| u.name.clone())
+        self.users.get(&self.uid).map(|u| u.name_arc.clone())
     }
 
     fn get_effective_uid(&self) -> uid_t {
@@ -115,7 +115,7 @@ impl Users for MockUsers {
     }
 
     fn get_effective_username(&self) -> Option<Arc<String>> {
-        self.users.get(&self.uid).map(|u| u.name.clone())
+        self.users.get(&self.uid).map(|u| u.name_arc.clone())
     }
 }
 
@@ -171,27 +171,27 @@ mod test {
     fn uid() {
         let mut users = MockUsers::with_current_uid(0);
         users.add_user(User::new(1337, "fred", 101));
-        assert_eq!(Some(Arc::new("fred".into())), users.get_user_by_uid(1337).map(|u| u.name.clone()))
+        assert_eq!(Some(Arc::new("fred".into())), users.get_user_by_uid(1337).map(|u| u.name_arc.clone()))
     }
 
     #[test]
     fn username() {
         let mut users = MockUsers::with_current_uid(1337);
         users.add_user(User::new(1440, "fred", 101));
-        assert_eq!(Some(1440), users.get_user_by_name("fred").map(|u| u.uid))
+        assert_eq!(Some(1440), users.get_user_by_name("fred").map(|u| u.uid()))
     }
 
     #[test]
     fn no_username() {
         let mut users = MockUsers::with_current_uid(1337);
         users.add_user(User::new(1337, "fred", 101));
-        assert_eq!(None, users.get_user_by_name("criminy").map(|u| u.uid))
+        assert_eq!(None, users.get_user_by_name("criminy").map(|u| u.uid()))
     }
 
     #[test]
     fn no_uid() {
         let users = MockUsers::with_current_uid(0);
-        assert_eq!(None, users.get_user_by_uid(1337).map(|u| u.name.clone()))
+        assert_eq!(None, users.get_user_by_uid(1337).map(|u| u.name_arc.clone()))
     }
 
     #[test]

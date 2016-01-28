@@ -134,7 +134,7 @@ impl Users for UsersCache {
             Vacant(entry) => {
                 match super::get_user_by_uid(uid) {
                     Some(user) => {
-                        let newsername = user.name.clone();
+                        let newsername = user.name_arc.clone();
                         let mut users_backward = self.users.backward.borrow_mut();
                         users_backward.insert(newsername, Some(uid));
 
@@ -161,7 +161,7 @@ impl Users for UsersCache {
             Vacant(entry) => {
                 match super::get_user_by_name(username) {
                     Some(user) => {
-                        let uid = user.uid;
+                        let uid = user.uid();
                         let user_arc = Arc::new(user);
 
                         let mut users_forward = self.users.forward.borrow_mut();
@@ -199,7 +199,7 @@ impl Users for UsersCache {
 
     fn get_current_username(&self) -> Option<Arc<String>> {
         let uid = self.get_current_uid();
-        self.get_user_by_uid(uid).map(|u| u.name.clone())
+        self.get_user_by_uid(uid).map(|u| u.name_arc.clone())
     }
 
     fn get_effective_uid(&self) -> uid_t {
@@ -215,7 +215,7 @@ impl Users for UsersCache {
 
     fn get_effective_username(&self) -> Option<Arc<String>> {
         let uid = self.get_effective_uid();
-        self.get_user_by_uid(uid).map(|u| u.name.clone())
+        self.get_user_by_uid(uid).map(|u| u.name_arc.clone())
     }
 }
 

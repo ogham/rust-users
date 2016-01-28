@@ -52,7 +52,7 @@ fn main() {
     for uid in LO .. HI {
         let cache = cache.lock().unwrap();             // Re-unlock the mutex
         if let Some(u) = cache.get_user_by_uid(uid) {  // Re-query our cache!
-            println!("User #{} is {}", u.uid, u.name)
+            println!("User #{} is {}", u.uid(), u.name())
         }
         else {
             println!("User #{} does not exist", uid);
