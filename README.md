@@ -31,7 +31,7 @@ It does not (yet) offer *editing* functionality; the objects returned are read-o
 The function `get_current_uid` returns a `uid_t` value representing the user currently running the program, and the `get_user_by_uid` function scans the users database and returns a User object with the user’s information.
 This function returns `None` when there is no user for that ID.
 
-A `User` object has the following public fields:
+A `User` object has the following accessors:
 
 - **uid:** The user’s ID
 - **name:** The user’s name
@@ -42,7 +42,7 @@ Here is a complete example that prints out the current user’s name:
 ```rust
 use users::{get_user_by_uid, get_current_uid};
 let user = get_user_by_uid(get_current_uid()).unwrap();
-println!("Hello, {}!", user.name);
+println!("Hello, {}!", user.name());
 ```
 
 This code assumes (with `unwrap()`) that the user hasn’t been deleted after the program has started running.
@@ -63,11 +63,11 @@ To introduce a cache, create a new `OSUsers` object and call the same methods on
 For example:
 
 ```rust
-use users::{Users, OSUsers};
-let mut cache = OSUsers::empty_cache();
+use users::{Users, Groups, UsersCache};
+let mut cache = UsersCache::new();
 let uid = cache.get_current_uid();
 let user = cache.get_user_by_uid(uid).unwrap();
-println!("Hello again, {}!", user.name);
+println!("Hello again, {}!", user.name());
 ```
 
 This cache is **only additive**: it’s not possible to drop it, or erase selected entries, as when the database may have been modified, it’s best to start entirely afresh.
@@ -77,22 +77,18 @@ So to accomplish this, just start using a new `OSUsers` object.
 ## Groups
 
 Finally, it’s possible to get groups in a similar manner.
-A `Group` object has the following public fields:
+A `Group` object has the following accessors:
 
 - **gid:** The group’s ID
 - **name:** The group’s name
-- **members:** Vector of names of the users that belong to this group
 
 And again, a complete example:
 
 ```rust
-use users::{Users, OSUsers};
-let mut cache = OSUsers::empty_cache();
+use users::{Users, Groups, UsersCache};
+let mut cache = UsersCache::new();
 let group = cache.get_group_by_name("admin").expect("No such group 'admin'!");
-println!("The '{}' group has the ID {}", group.name, group.gid);
-for member in group.members.into_iter() {
-    println!("{} is a member of the group", member);
-}
+println!("The '{}' group has the ID {}", group.name(), group.gid());
 ```
 
 
@@ -117,19 +113,13 @@ Aside from that, you can add users and groups with `add_user` and `add_group` to
 
 ```rust
 use users::mock::{MockUsers, User, Group};
+use users::os::unix::{UserExt, GroupExt};
+use std::sync::Arc;
+
 let mut users = MockUsers::with_current_uid(1000);
-users.add_user(User {
-    uid: 1000,
-    name: "Bobbins".to_string(),
-    primary_group: 100,
-    home_dir: "/home/bobbins".to_string(),
-    shell: "/bin/bash".to_string(),
-});
-users.add_group(Group {
-    gid: 100,
-    name: "funkyppl".to_string(),
-    members: vec![ "other_person".to_string() ]
-});
+let bobbins = User::new(1000, "Bobbins", 1000).with_home_dir("/home/bobbins");
+users.add_user(bobbins);
+users.add_group(Group::new(100, "funkyppl"));
 ```
 
 The exports get re-exported into the mock module, for simpler `use` lines.
@@ -143,24 +133,19 @@ Then, you can pass in an object of either OS or Mock type.
 Here's a complete example:
 
 ```rust
-use users::{Users, OSUsers, User};
+use users::{Users, UsersCache, User};
+use users::os::unix::UserExt;
 use users::mock::MockUsers;
+use std::sync::Arc;
 
 fn print_current_username<U: Users>(users: &mut U) {
     println!("Current user: {:?}", users.get_current_username());
 }
 
 let mut users = MockUsers::with_current_uid(1001);
-users.add_user(User {
-    uid: 1001,
-    name: "fred".to_string(),
-    primary_group: 101,
-    home_dir: "/home/fred".to_string(),
-    shell: "/bin/bash".to_string(),
-});
-
+users.add_user(User::new(1001, "fred", 101));
 print_current_username(&mut users);
 
-let mut actual_users = OSUsers::empty_cache();
+let mut actual_users = UsersCache::new();
 print_current_username(&mut actual_users);
 ```
