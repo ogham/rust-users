@@ -97,9 +97,12 @@ extern {
 #[derive(Clone)]
 pub struct User {
     uid: uid_t,
-    pub name_arc: Arc<String>,
     primary_group: gid_t,
     extras: os::UserExtras,
+
+    /// This user’s name, as an owned `String` possibly shared with a cache.
+    /// Prefer using the `name()` accessor to using this field, if possible.
+    pub name_arc: Arc<String>,
 }
 
 impl User {
@@ -118,14 +121,17 @@ impl User {
         }
     }
 
+    /// Returns this user’s ID.
     pub fn uid(&self) -> uid_t {
         self.uid.clone()
     }
 
+    /// Returns this user’s name.
     pub fn name(&self) -> &str {
         &**self.name_arc
     }
 
+    /// Returns the ID of this user’s primary group.
     pub fn primary_group_id(&self) -> gid_t {
         self.primary_group.clone()
     }
@@ -135,8 +141,11 @@ impl User {
 #[derive(Clone)]
 pub struct Group {
     gid: gid_t,
-    pub name_arc: Arc<String>,
     extras: os::GroupExtras,
+
+    /// This group’s name, as an owned `String` possibly shared with a cache.
+    /// Prefer using the `name()` accessor to using this field, if possible.
+    pub name_arc: Arc<String>,
 }
 
 impl Group {
@@ -154,10 +163,12 @@ impl Group {
         }
     }
 
+    /// Returns this group’s ID.
     pub fn gid(&self) -> gid_t {
         self.gid.clone()
     }
 
+    /// Returns this group's name.
     pub fn name(&self) -> &str {
         &**self.name_arc
     }
@@ -402,9 +413,14 @@ pub mod os {
             fn members(&self) -> &[String];
         }
 
+        /// Unix-specific fields for `User`s.
         #[derive(Clone)]
         pub struct UserExtras {
+
+            /// The path to the user’s home directory.
             pub home_dir: String,
+
+            /// The path to the user’s shell.
             pub shell: String,
         }
 
@@ -418,6 +434,8 @@ pub mod os {
         }
 
         impl UserExtras {
+            /// Extract the OS-specific fields from the C `passwd` struct that
+            /// we just read.
             pub unsafe fn from_passwd(passwd: c_passwd) -> UserExtras {
                 let home_dir = from_raw_buf(passwd.pw_dir);
                 let shell    = from_raw_buf(passwd.pw_shell);
@@ -453,12 +471,17 @@ pub mod os {
             }
         }
 
+        /// Unix-specific fields for `Group`s.
         #[derive(Clone, Default)]
         pub struct GroupExtras {
+
+            /// Vector of usernames that are members of this group.
             pub members: Vec<String>,
         }
 
         impl GroupExtras {
+            /// Extract the OS-specific fields from the C `group` struct that
+            /// we just read.
             pub unsafe fn from_struct(group: c_group) -> GroupExtras {
                 let members = members(group.gr_mem);
 
@@ -475,20 +498,34 @@ pub mod os {
         }
     }
 
+    /// Extensions to users and groups for BSD platforms.
+    ///
+    /// These platforms have `change` and `expire` fields in their `passwd`
+    /// C structs.
     #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
     pub mod bsd {
         use std::path::Path;
         use libc::time_t;
         use super::super::{c_passwd, User};
 
+        /// BSD-specific fields for `User`s.
         #[derive(Clone)]
         pub struct UserExtras {
+
+            /// Fields specific to Unix, rather than just BSD. (This struct is
+            /// a superset, so it has to have all the other fields in it, too).
             pub extras: super::unix::UserExtras,
+
+            /// Password change time.
             pub change: time_t,
+
+            /// Password expiry time.
             pub expire: time_t,
         }
 
         impl UserExtras {
+            /// Extract the OS-specific fields from the C `passwd` struct that
+            /// we just read.
             pub unsafe fn from_passwd(passwd: c_passwd) -> UserExtras {
                 UserExtras {
                     change: passwd.pw_change,
@@ -529,12 +566,15 @@ pub mod os {
         }
     }
 
+    /// Any extra fields on a `User` specific to the current platform.
     #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
     pub type UserExtras = bsd::UserExtras;
 
+    /// Any extra fields on a `User` specific to the current platform.
     #[cfg(any(target_os = "linux"))]
     pub type UserExtras = unix::UserExtras;
 
+    /// Any extra fields on a `Group` specific to the current platform.
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
     pub type GroupExtras = unix::GroupExtras;
 }

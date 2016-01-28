@@ -1,3 +1,5 @@
+//! Functions for switching the running process’s user or group.
+
 use std::io::{Error as IOError, Result as IOResult};
 use libc::{uid_t, gid_t, c_int};
 
@@ -95,6 +97,7 @@ pub fn set_both_gid(rgid: gid_t, egid: gid_t) -> IOResult<()> {
     }
 }
 
+/// Guard returned from a `switch_user_group` call.
 pub struct SwitchUserGuard {
     uid: uid_t,
     gid: gid_t,
