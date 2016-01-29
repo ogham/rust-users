@@ -120,15 +120,19 @@ impl Default for UsersCache {
 
 impl UsersCache {
 
-    /// Create a new empty cache.
+    /// Creates a new empty cache.
     pub fn new() -> UsersCache {
         UsersCache::default()
     }
 
+    /// Creates a new cache that contains all the users present on the system.
+    ///
+    /// This is `unsafe` because we cannot prevent data races if two caches
+    /// were attempted to be initialised on different threads at the same time.
     pub unsafe fn with_all_users() -> UsersCache {
         let cache = UsersCache::new();
 
-        for user in unsafe { AllUsers::new() } {
+        for user in AllUsers::new() {
             let uid = user.uid();
             let user_arc = Arc::new(user);
             cache.users.forward.borrow_mut().insert(uid, Some(user_arc.clone()));
