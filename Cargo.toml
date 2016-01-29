@@ -7,7 +7,7 @@ documentation = "http://ogham.rustdocs.org/users/"
 homepage = "https://github.com/ogham/rust-users"
 license = "MIT"
 readme = "README.md"
-version = "0.4.4"
+version = "0.5.0"
 
 [dependencies]
 libc = "0.2"
