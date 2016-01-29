@@ -90,6 +90,10 @@ extern {
 
     fn getgid() -> gid_t;
     fn getegid() -> gid_t;
+
+    fn setpwent();
+    fn getpwent() -> *const c_passwd;
+    fn endpwent();
 }
 
 
@@ -383,6 +387,31 @@ pub fn get_effective_groupname() -> Option<String> {
     let gid = get_effective_gid();
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
 }
+
+
+pub struct AllUsers(());
+
+impl AllUsers {
+    pub unsafe fn new() -> AllUsers {
+        unsafe { setpwent() };
+        AllUsers(())
+    }
+}
+
+impl Drop for AllUsers {
+    fn drop(&mut self) {
+        unsafe { endpwent() };
+    }
+}
+
+impl Iterator for AllUsers {
+    type Item = User;
+
+    fn next(&mut self) -> Option<User> {
+        unsafe { passwd_to_user(getpwent()) }
+    }
+}
+
 
 
 /// OS-specific extensions to users and groups.
