@@ -68,7 +68,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use base::{User, Group};
+use base::{User, Group, AllUsers};
 use traits::{Users, Groups};
 
 
@@ -123,6 +123,19 @@ impl UsersCache {
     /// Create a new empty cache.
     pub fn new() -> UsersCache {
         UsersCache::default()
+    }
+
+    pub unsafe fn with_all_users() -> UsersCache {
+        let cache = UsersCache::new();
+
+        for user in unsafe { AllUsers::new() } {
+            let uid = user.uid();
+            let user_arc = Arc::new(user);
+            cache.users.forward.borrow_mut().insert(uid, Some(user_arc.clone()));
+            cache.users.backward.borrow_mut().insert(user_arc.name_arc.clone(), Some(uid));
+        }
+
+        cache
     }
 }
 
