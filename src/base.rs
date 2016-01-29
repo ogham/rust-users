@@ -138,8 +138,18 @@ impl User {
 }
 
 impl fmt::Debug for User {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "User({}, {})", self.uid(), self.name())
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if f.alternate() {
+            f.debug_struct("User")
+             .field("uid", &self.uid)
+             .field("name_arc", &self.name_arc)
+             .field("primary_group", &self.primary_group)
+             .field("extras", &self.extras)
+             .finish()
+        }
+        else {
+            write!(f, "User({}, {})", self.uid(), self.name())
+        }
     }
 }
 
@@ -182,8 +192,17 @@ impl Group {
 }
 
 impl fmt::Debug for Group {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "Group({}, {})", self.gid(), self.name())
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if f.alternate() {
+            f.debug_struct("Group")
+             .field("gid", &self.gid)
+             .field("name_arc", &self.name_arc)
+             .field("extras", &self.extras)
+             .finish()
+        }
+        else {
+            write!(f, "Group({}, {})", self.gid(), self.name())
+        }
     }
 }
 
@@ -426,7 +445,7 @@ pub mod os {
         }
 
         /// Unix-specific fields for `User`s.
-        #[derive(Clone)]
+        #[derive(Clone, Debug)]
         pub struct UserExtras {
 
             /// The path to the user’s home directory.
@@ -484,7 +503,7 @@ pub mod os {
         }
 
         /// Unix-specific fields for `Group`s.
-        #[derive(Clone, Default)]
+        #[derive(Clone, Default, Debug)]
         pub struct GroupExtras {
 
             /// Vector of usernames that are members of this group.
@@ -521,7 +540,7 @@ pub mod os {
         use super::super::{c_passwd, User};
 
         /// BSD-specific fields for `User`s.
-        #[derive(Clone)]
+        #[derive(Clone, Debug)]
         pub struct UserExtras {
 
             /// Fields specific to Unix, rather than just BSD. (This struct is
