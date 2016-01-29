@@ -90,6 +90,10 @@ extern {
 
     fn getgid() -> gid_t;
     fn getegid() -> gid_t;
+
+    fn setpwent();
+    fn getpwent() -> *const c_passwd;
+    fn endpwent();
 }
 
 
@@ -383,6 +387,56 @@ pub fn get_effective_groupname() -> Option<String> {
     let gid = get_effective_gid();
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
 }
+
+
+/// An iterator over every user present on the system.
+///
+/// This struct actually requires no fields, but has one hidden one to make it
+/// `unsafe` to create.
+pub struct AllUsers(());
+
+impl AllUsers {
+
+    /// Creates a new iterator over every user present on the system.
+    ///
+    /// ## Unsafety
+    ///
+    /// This constructor is marked as `unsafe`, which is odd for a crate
+    /// that's meant to be a safe interface. It *has* to be unsafe because
+    /// we cannot guarantee that the underlying C functions,
+    /// `getpwent`/`setpwent`/`endpwent` that iterate over the system's
+    /// `passwd` entries, are called in a thread-safe manner.
+    ///
+    /// These functions [modify a global
+    /// state](http://man7.org/linux/man-pages/man3/getpwent.3.html#
+    /// ATTRIBUTES), and if any are used at the same time, the state could
+    /// be reset, resulting in a data race. We cannot even place it behind
+    /// an internal `Mutex`, as there is nothing stopping another `extern`
+    /// function definition from calling it!
+    ///
+    /// So to iterate all users, construct the iterator inside an `unsafe`
+    /// block, then make sure to not make a new instance of it until
+    /// iteration is over.
+    pub unsafe fn new() -> AllUsers {
+        setpwent();
+        AllUsers(())
+    }
+}
+
+impl Drop for AllUsers {
+    fn drop(&mut self) {
+        unsafe { endpwent() };
+    }
+}
+
+impl Iterator for AllUsers {
+    type Item = User;
+
+    fn next(&mut self) -> Option<User> {
+        unsafe { passwd_to_user(getpwent()) }
+    }
+}
+
 
 
 /// OS-specific extensions to users and groups.
