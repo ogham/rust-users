@@ -496,6 +496,9 @@ pub mod os {
             /// Returns a slice of the list of users that are in this group as
             /// their non-primary group.
             fn members(&self) -> &[String];
+
+            /// Adds a new member to this group.
+            fn add_member(mut self, name: &str) -> Self;
         }
 
         /// Unix-specific fields for `User`s.
@@ -579,6 +582,11 @@ pub mod os {
         impl GroupExt for Group {
             fn members(&self) -> &[String] {
                 &*self.extras.members
+            }
+
+            fn add_member(mut self, member: &str) -> Group {
+                self.extras.members.push(member.to_owned());
+                self
             }
         }
     }
