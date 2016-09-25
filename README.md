@@ -2,7 +2,7 @@
 
 This is a library for getting information on Unix users and groups. It supports getting the system users, and creating your own mock tables.
 
-### [View the Rustdoc](http://ogham.rustdocs.org/users)
+### [View the Rustdoc](https://docs.rs/users)
 
 
 # Installation
