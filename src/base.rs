@@ -476,7 +476,7 @@ pub mod os {
             /// Sets this user value’s home directory to the given string.
             /// Can be used to construct test users, which by default come with a
             /// dummy home directory string.
-            fn with_home_dir(mut self, home_dir: &str) -> Self;
+            fn with_home_dir(self, home_dir: &str) -> Self;
 
             /// Returns a path to this user’s shell.
             fn shell(&self) -> &Path;
@@ -484,7 +484,7 @@ pub mod os {
             /// Sets this user’s shell path to the given string.
             /// Can be used to construct test users, which by default come with a
             /// dummy shell field.
-            fn with_shell(mut self, shell: &str) -> Self;
+            fn with_shell(self, shell: &str) -> Self;
 
             // TODO(ogham): Isn’t it weird that the setters take string slices, but
             // the getters return paths?
@@ -498,7 +498,7 @@ pub mod os {
             fn members(&self) -> &[String];
 
             /// Adds a new member to this group.
-            fn add_member(mut self, name: &str) -> Self;
+            fn add_member(self, name: &str) -> Self;
         }
 
         /// Unix-specific fields for `User`s.
@@ -633,7 +633,7 @@ pub mod os {
                 Path::new(&self.extras.extras.home_dir)
             }
 
-            fn with_home_dir(mut self, home_dir: &str) -> User {
+            fn with_home_dir(self, home_dir: &str) -> User {
                 self.extras.extras.home_dir = home_dir.to_owned();
                 self
             }
@@ -642,7 +642,7 @@ pub mod os {
                 Path::new(&self.extras.extras.shell)
             }
 
-            fn with_shell(mut self, shell: &str) -> User {
+            fn with_shell(self, shell: &str) -> User {
                 self.extras.extras.shell = shell.to_owned();
                 self
             }
