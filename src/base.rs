@@ -36,14 +36,14 @@ use std::sync::Arc;
 
 use libc::{uid_t, gid_t};
 
-#[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
+#[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd"))]
 use libc::{c_char, time_t};
 
 #[cfg(target_os = "linux")]
 use libc::c_char;
 
 
-#[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
+#[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd"))]
 #[repr(C)]
 pub struct c_passwd {
     pw_name:    *const c_char,  // user name
@@ -461,7 +461,7 @@ pub mod os {
     /// Although the `passwd` struct is common among Unix systems, its actual
     /// format can vary. See the definitions in the `base` module to check which
     /// fields are actually present.
-    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd"))]
     pub mod unix {
         use std::path::Path;
 
@@ -595,7 +595,7 @@ pub mod os {
     ///
     /// These platforms have `change` and `expire` fields in their `passwd`
     /// C structs.
-    #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
+    #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd"))]
     pub mod bsd {
         use std::path::Path;
         use libc::time_t;
@@ -680,7 +680,7 @@ pub mod os {
     }
 
     /// Any extra fields on a `User` specific to the current platform.
-    #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
+    #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd"))]
     pub type UserExtras = bsd::UserExtras;
 
     /// Any extra fields on a `User` specific to the current platform.
@@ -688,7 +688,7 @@ pub mod os {
     pub type UserExtras = unix::UserExtras;
 
     /// Any extra fields on a `Group` specific to the current platform.
-    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly"))]
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd"))]
     pub type GroupExtras = unix::GroupExtras;
 }
 
