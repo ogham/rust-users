@@ -29,6 +29,9 @@
 //! best bet is to check for them yourself before passing strings into any
 //! functions.
 
+
+#![allow(missing_copy_implementations)]  // for the C structs
+
 use std::ffi::{CStr, CString};
 use std::fmt;
 use std::ptr::read;
