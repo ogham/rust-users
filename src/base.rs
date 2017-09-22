@@ -636,7 +636,7 @@ pub mod os {
                 Path::new(&self.extras.extras.home_dir)
             }
 
-            fn with_home_dir(mut self, home_dir: &str) -> User {
+            fn with_home_dir(self, home_dir: &str) -> User {
                 self.extras.extras.home_dir = home_dir.to_owned();
                 self
             }
@@ -645,7 +645,7 @@ pub mod os {
                 Path::new(&self.extras.extras.shell)
             }
 
-            fn with_shell(mut self, shell: &str) -> User {
+            fn with_shell(self, shell: &str) -> User {
                 self.extras.extras.shell = shell.to_owned();
                 self
             }
