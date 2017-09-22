@@ -139,7 +139,7 @@ pub fn switch_user_group(uid: uid_t, gid: gid_t) -> IOResult<SwitchUserGuard> {
         gid: get_effective_gid(),
     };
 
-    try!(set_effective_uid(uid));
     try!(set_effective_gid(gid));
+    try!(set_effective_uid(uid));
     Ok(current_state)
 }
