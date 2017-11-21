@@ -1,10 +1,10 @@
-//! Functions for switching the running process’s user or group.
+//! Functions for switching the running process’s user or group in UNIX.
 
 use std::io::{Error as IOError, Result as IOResult};
 use libc::{uid_t, gid_t, c_int};
 
 use base::{get_effective_uid, get_effective_gid};
-
+use super::SwitchUserGuard;
 
 extern {
     fn setuid(uid: uid_t) -> c_int;
@@ -94,21 +94,6 @@ pub fn set_both_gid(rgid: gid_t, egid: gid_t) -> IOResult<()> {
          0 => Ok(()),
         -1 => Err(IOError::last_os_error()),
          n => unreachable!("setregid returned {}", n)
-    }
-}
-
-/// Guard returned from a `switch_user_group` call.
-pub struct SwitchUserGuard {
-    uid: uid_t,
-    gid: gid_t,
-}
-
-impl Drop for SwitchUserGuard {
-    fn drop(&mut self) {
-        // Panic on error here, as failing to set values back
-        // is a possible security breach.
-        set_effective_uid(self.uid).unwrap();
-        set_effective_gid(self.gid).unwrap();
     }
 }
 

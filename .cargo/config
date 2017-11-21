@@ -1,0 +1,3 @@
+[target.x86_64-unknown-redox]
+linker = "x86_64-unknown-redox-gcc"
+rustflags = []

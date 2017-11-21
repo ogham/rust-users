@@ -109,11 +109,19 @@
 #![warn(trivial_casts, trivial_numeric_casts)]
 #![warn(unused_extern_crates, unused_qualifications)]
 
+#[cfg(target_os = "redox")]
+extern crate redox_users;
+#[cfg(target_os = "redox")]
+extern crate syscall as redox_syscall;
+
 extern crate libc;
 pub use libc::{uid_t, gid_t};
 
 mod base;
-pub use base::{User, Group, os};
+
+pub use base::{User, Group};
+pub use base::os;
+
 pub use base::{get_user_by_uid, get_user_by_name};
 pub use base::{get_group_by_gid, get_group_by_name};
 pub use base::{get_current_uid, get_current_username};
@@ -121,7 +129,6 @@ pub use base::{get_effective_uid, get_effective_username};
 pub use base::{get_current_gid, get_current_groupname};
 pub use base::{get_effective_gid, get_effective_groupname};
 pub use base::AllUsers;
-
 
 pub mod cache;
 pub use cache::UsersCache;

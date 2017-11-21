@@ -1,6 +1,12 @@
 extern crate users;
 use users::{Users, Groups, UsersCache};
+
+#[cfg(unix)]
 use users::os::unix::{UserExt, GroupExt};
+
+#[cfg(target_os = "redox")]
+use users::os::redox::{UserExt, GroupExt};
+
 //use users::os::bsd::UserExt as BSDUserExt;
 
 fn main() {
@@ -16,8 +22,8 @@ fn main() {
 
     // The two fields below are only available on BSD systems.
     // Linux systems don’t have the fields in their `passwd` structs!
-    //println!("Your password change timestamp is {}", you.password_change_time());
-    //println!("Your password expiry timestamp is {}", you.password_expire_time());
+	//println!("Your password change timestamp is {}", you.password_change_time());
+	//println!("Your password expiry timestamp is {}", you.password_expire_time());
 
 	let primary_group = cache.get_group_by_gid(you.primary_group_id()).expect("No entry for your primary group!");
 	println!("Your primary group has ID {} and name {}", primary_group.gid(), primary_group.name());
