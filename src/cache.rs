@@ -68,7 +68,10 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use base::{User, Group, AllUsers};
+use base::{User, Group};
+
+use AllUsers;
+
 use traits::{Users, Groups};
 
 
