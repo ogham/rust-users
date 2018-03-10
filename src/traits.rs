@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
-pub use libc::{uid_t, gid_t, c_int};
+use libc::{uid_t, gid_t};
 
-use super::{User, Group};
+use base::{User, Group};
+
 
 /// Trait for producers of users.
 pub trait Users {

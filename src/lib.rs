@@ -2,6 +2,13 @@
 #![crate_type = "rlib"]
 #![crate_type = "dylib"]
 
+#![warn(missing_copy_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts, trivial_numeric_casts)]
+#![warn(unused_extern_crates, unused_qualifications)]
+#![warn(unreachable_pub)]
+
+
 //! This is a library for getting information on Unix users and groups. It
 //! supports getting the system users, and creating your own mock tables.
 //!
@@ -104,10 +111,6 @@
 //! Use the mocking module to create custom tables to test your code for these
 //! edge cases.
 
-#![warn(missing_copy_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts, trivial_numeric_casts)]
-#![warn(unused_extern_crates, unused_qualifications)]
 
 extern crate libc;
 pub use libc::{uid_t, gid_t};
