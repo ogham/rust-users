@@ -411,11 +411,11 @@ impl AllUsers {
     /// `passwd` entries, are called in a thread-safe manner.
     ///
     /// These functions [modify a global
-    /// state](http://man7.org/linux/man-pages/man3/getpwent.3.html#
-    /// ATTRIBUTES), and if any are used at the same time, the state could
-    /// be reset, resulting in a data race. We cannot even place it behind
-    /// an internal `Mutex`, as there is nothing stopping another `extern`
-    /// function definition from calling it!
+    /// state](http://man7.org/linux/man-pages/man3/getpwent.3.html#ATTRIBUTES),
+    /// and if any are used at the same time, the state could be reset,
+    /// resulting in a data race. We cannot even place it behind an internal
+    /// `Mutex`, as there is nothing stopping another `extern` function
+    /// definition from calling it!
     ///
     /// So to iterate all users, construct the iterator inside an `unsafe`
     /// block, then make sure to not make a new instance of it until

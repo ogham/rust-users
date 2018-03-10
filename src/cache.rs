@@ -24,7 +24,7 @@
 //! value. In this case, switching to `&mut self` would only allow for one user
 //! to be read at a time!
 //!
-//! ``norun
+//! ```norun
 //! let mut cache = UsersCache::empty_cache();
 //! let uid   = cache.get_current_uid();                     // OK...
 //! let user  = cache.get_user_by_uid(uid).unwrap()          // OK...
@@ -43,7 +43,7 @@
 //! we’re just trying the same trick as earlier. A simplified implementation of
 //! a user cache lookup would look something like this:
 //!
-//! ``norun
+//! ```norun
 //! fn get_user_by_uid(&self, uid: uid_t) -> Option<&User> {
 //!     let users = self.users.borrow_mut();
 //!     users.get(uid)
