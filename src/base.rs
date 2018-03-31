@@ -29,76 +29,29 @@
 //! best bet is to check for them yourself before passing strings into any
 //! functions.
 
-
-#![allow(missing_copy_implementations)]  // for the C structs
-
 use std::ffi::{CStr, CString};
 use std::fmt;
 use std::ptr::read;
 use std::sync::Arc;
 
-use libc::{uid_t, gid_t};
-
-#[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd"))]
-use libc::{c_char, time_t};
-
-#[cfg(target_os = "linux")]
-use libc::c_char;
-
-
-#[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd"))]
-#[repr(C)]
-pub struct c_passwd {
-    pw_name:    *const c_char,  // user name
-    pw_passwd:  *const c_char,  // password field
-    pw_uid:     uid_t,          // user ID
-    pw_gid:     gid_t,          // group ID
-    pw_change:  time_t,         // password change time
-    pw_class:   *const c_char,
-    pw_gecos:   *const c_char,
-    pw_dir:     *const c_char,  // user's home directory
-    pw_shell:   *const c_char,  // user's shell
-    pw_expire:  time_t,         // password expiry time
-}
-
-#[cfg(target_os = "linux")]
-#[repr(C)]
-pub struct c_passwd {
-    pw_name:    *const c_char,  // user name
-    pw_passwd:  *const c_char,  // password field
-    pw_uid:     uid_t,          // user ID
-    pw_gid:     gid_t,          // group ID
-    pw_gecos:   *const c_char,
-    pw_dir:     *const c_char,  // user's home directory
-    pw_shell:   *const c_char,  // user's shell
-}
-
-#[repr(C)]
-pub struct c_group {
-    gr_name:   *const c_char,         // group name
-    gr_passwd: *const c_char,         // password
-    gr_gid:    gid_t,                 // group id
-    gr_mem:    *const *const c_char,  // names of users in the group
-}
-
-extern {
-    fn getpwuid(uid: uid_t) -> *const c_passwd;
-    fn getpwnam(user_name: *const c_char) -> *const c_passwd;
-
-    fn getgrgid(gid: gid_t) -> *const c_group;
-    fn getgrnam(group_name: *const c_char) -> *const c_group;
-
-    fn getuid() -> uid_t;
-    fn geteuid() -> uid_t;
-
-    fn getgid() -> gid_t;
-    fn getegid() -> gid_t;
-
-    fn setpwent();
-    fn getpwent() -> *const c_passwd;
-    fn endpwent();
-}
-
+use libc::{
+    c_char,
+    uid_t,
+    gid_t,
+    getpwuid,
+    getpwnam,
+    getgrgid,
+    getgrnam,
+    getuid,
+    geteuid,
+    getgid,
+    getegid,
+    setpwent,
+    getpwent,
+    endpwent
+};
+use libc::passwd as c_passwd;
+use libc::group as c_group;
 
 /// Information about a particular user.
 #[derive(Clone)]
@@ -277,7 +230,7 @@ unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
 /// `members[1]`, and so on, until that null pointer is reached. It doesn't
 /// specify whether we should expect a null pointer or a pointer to a null
 /// pointer, so we check for both here!
-unsafe fn members(groups: *const *const c_char) -> Vec<String> {
+unsafe fn members(groups: *mut *mut c_char) -> Vec<String> {
     let mut members = Vec::new();
 
     for i in 0.. {

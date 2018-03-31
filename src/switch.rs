@@ -1,16 +1,14 @@
 //! Functions for switching the running process’s user or group.
 
 use std::io::{Error as IOError, Result as IOResult};
-use libc::{uid_t, gid_t, c_int};
+use libc::{uid_t, gid_t, c_int, setuid, seteuid, setgid};
 
 use base::{get_effective_uid, get_effective_gid};
 
 
+// NOTE: for whatever reason, it seems these are not available in libc on BSD platforms, so they
+//       need to be included manually
 extern {
-    fn setuid(uid: uid_t) -> c_int;
-    fn seteuid(uid: uid_t) -> c_int;
-
-    fn setgid(gid: gid_t) -> c_int;
     fn setegid(gid: gid_t) -> c_int;
 
     fn setreuid(ruid: uid_t, euid: uid_t) -> c_int;
