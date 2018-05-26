@@ -442,6 +442,14 @@ pub mod os {
             /// dummy shell field.
             fn with_shell(self, shell: &str) -> Self;
 
+            /// Returns the user's encrypted password.
+            fn password(&self) -> &str;
+
+            /// Sets this user's password to the given string.
+            /// Can be used to construct tests users, which by default come with a
+            /// dummy password field.
+            fn with_password(self, password: &str) -> Self;
+
             // TODO(ogham): Isn’t it weird that the setters take string slices, but
             // the getters return paths?
         }
@@ -466,6 +474,9 @@ pub mod os {
 
             /// The path to the user’s shell.
             pub shell: String,
+
+            /// The user's encrypted password.
+            pub password: String,
         }
 
         impl Default for UserExtras {
@@ -473,6 +484,7 @@ pub mod os {
                 UserExtras {
                     home_dir: String::from("/var/empty"),
                     shell:    String::from("/bin/false"),
+                    password: String::from("*"),
                 }
             }
         }
@@ -483,10 +495,12 @@ pub mod os {
             pub unsafe fn from_passwd(passwd: c_passwd) -> UserExtras {
                 let home_dir = from_raw_buf(passwd.pw_dir);
                 let shell    = from_raw_buf(passwd.pw_shell);
+                let password = from_raw_buf(passwd.pw_passwd);
 
                 UserExtras {
                     home_dir:  home_dir,
                     shell:     shell,
+                    password:  password,
                 }
             }
         }
@@ -511,6 +525,15 @@ pub mod os {
 
             fn with_shell(mut self, shell: &str) -> User {
                 self.extras.shell = shell.to_owned();
+                self
+            }
+
+            fn password(&self) -> &str {
+                &self.extras.password
+            }
+
+            fn with_password(mut self, password: &str) -> User {
+                self.extras.password = password.to_owned();
                 self
             }
         }
@@ -602,6 +625,15 @@ pub mod os {
                 self.extras.extras.shell = shell.to_owned();
                 self
             }
+
+            fn password(&self) -> &str {
+                &self.extras.extras.password
+            }
+
+            fn with_password(mut self, password: &str) -> User {
+                self.extras.extras.password = password.to_owned();
+                self
+            }
         }
 
         /// BSD-specific accessors for `User`s.
@@ -687,7 +719,8 @@ mod test {
         let user = get_user_by_uid(uid).unwrap();
         // Not a real test but can be used to verify correct results
         // Use with --nocapture on test executable to show output
-        println!("HOME={:?}, SHELL={:?}", user.home_dir(), user.shell());
+        println!("HOME={:?}, SHELL={:?}, PASSWD={:?}",
+            user.home_dir(), user.shell(), user.password());
     }
 
     #[test]
