@@ -11,7 +11,7 @@ This crate works with [Cargo](http://crates.io). Add the following to your `Carg
 
 ```toml
 [dependencies]
-users = "0.6"
+users = "0.7"
 ```
 
 
