@@ -6,6 +6,6 @@ fn main() {
     users.sort_by(|a, b| a.uid().cmp(&b.uid()));
 
     for user in users {
-        println!("User {} has name {}", user.uid(), user.name());
+        println!("User {} has name {}", user.uid(), user.name().to_string_lossy());
     }
 }

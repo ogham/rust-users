@@ -57,6 +57,7 @@
 //! ```
 
 use std::collections::HashMap;
+use std::ffi::{OsStr, OsString};
 use std::sync::Arc;
 
 pub use libc::{uid_t, gid_t};
@@ -98,15 +99,15 @@ impl Users for MockUsers {
         self.users.get(&uid).cloned()
     }
 
-    fn get_user_by_name(&self, username: &str) -> Option<Arc<User>> {
-        self.users.values().find(|u| u.name() == username).cloned()
+    fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(&self, username: &S) -> Option<Arc<User>> {
+        self.users.values().find(|u| u.name() == username.as_ref()).cloned()
     }
 
     fn get_current_uid(&self) -> uid_t {
         self.uid
     }
 
-    fn get_current_username(&self) -> Option<Arc<String>> {
+    fn get_current_username(&self) -> Option<Arc<OsString>> {
         self.users.get(&self.uid).map(|u| u.name_arc.clone())
     }
 
@@ -114,7 +115,7 @@ impl Users for MockUsers {
         self.uid
     }
 
-    fn get_effective_username(&self) -> Option<Arc<String>> {
+    fn get_effective_username(&self) -> Option<Arc<OsString>> {
         self.users.get(&self.uid).map(|u| u.name_arc.clone())
     }
 }
@@ -124,15 +125,15 @@ impl Groups for MockUsers {
         self.groups.get(&gid).cloned()
     }
 
-    fn get_group_by_name(&self, group_name: &str) -> Option<Arc<Group>> {
-        self.groups.values().find(|g| g.name() == group_name).cloned()
+    fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(&self, group_name: &S) -> Option<Arc<Group>> {
+        self.groups.values().find(|g| g.name() == group_name.as_ref()).cloned()
     }
 
     fn get_current_gid(&self) -> uid_t {
         self.uid
     }
 
-    fn get_current_groupname(&self) -> Option<Arc<String>> {
+    fn get_current_groupname(&self) -> Option<Arc<OsString>> {
         self.groups.get(&self.uid).map(|u| u.name_arc.clone())
     }
 
@@ -140,7 +141,7 @@ impl Groups for MockUsers {
         self.uid
     }
 
-    fn get_effective_groupname(&self) -> Option<Arc<String>> {
+    fn get_effective_groupname(&self) -> Option<Arc<OsString>> {
         self.groups.get(&self.uid).map(|u| u.name_arc.clone())
     }
 }

@@ -62,10 +62,10 @@
 //! produces are not affected.
 
 use libc::{uid_t, gid_t};
-use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
+use std::ffi::{OsStr, OsString};
 use std::sync::Arc;
 
 use base::{User, Group, AllUsers};
@@ -90,7 +90,7 @@ pub struct UsersCache {
 /// to uid” map, as the uid is present in the user struct!
 struct BiMap<K, V> {
     forward:  RefCell< HashMap<K, Option<Arc<V>>> >,
-    backward: RefCell< HashMap<Arc<String>, Option<K>> >,
+    backward: RefCell< HashMap<Arc<OsString>, Option<K>> >,
 }
 
 // Default has to be impl'd manually here, because there's no
@@ -169,12 +169,10 @@ impl Users for UsersCache {
         }
     }
 
-    fn get_user_by_name(&self, username: &str) -> Option<Arc<User>> {
+    fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(&self, username: &S) -> Option<Arc<User>> {
         let mut users_backward = self.users.backward.borrow_mut();
 
-        // to_owned() could change here:
-        // https://github.com/rust-lang/rfcs/blob/master/text/0509-collections-reform-part-2.md#alternatives-to-toowned-on-entries
-        match users_backward.entry(Arc::new(username.to_owned())) {
+        match users_backward.entry(Arc::new(username.into())) {
             Vacant(entry) => {
                 match super::get_user_by_name(username) {
                     Some(user) => {
@@ -214,7 +212,7 @@ impl Users for UsersCache {
         }
     }
 
-    fn get_current_username(&self) -> Option<Arc<String>> {
+    fn get_current_username(&self) -> Option<Arc<OsString>> {
         let uid = self.get_current_uid();
         self.get_user_by_uid(uid).map(|u| u.name_arc.clone())
     }
@@ -230,7 +228,7 @@ impl Users for UsersCache {
         }
     }
 
-    fn get_effective_username(&self) -> Option<Arc<String>> {
+    fn get_effective_username(&self) -> Option<Arc<OsString>> {
         let uid = self.get_effective_uid();
         self.get_user_by_uid(uid).map(|u| u.name_arc.clone())
     }
@@ -263,12 +261,10 @@ impl Groups for UsersCache {
         }
     }
 
-    fn get_group_by_name(&self, group_name: &str) -> Option<Arc<Group>> {
+    fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(&self, group_name: &S) -> Option<Arc<Group>> {
         let mut groups_backward = self.groups.backward.borrow_mut();
 
-        // to_owned() could change here:
-        // https://github.com/rust-lang/rfcs/blob/master/text/0509-collections-reform-part-2.md#alternatives-to-toowned-on-entries
-        match groups_backward.entry(Arc::new(group_name.to_owned())) {
+        match groups_backward.entry(Arc::new(group_name.into())) {
             Vacant(entry) => {
                 let user = super::get_group_by_name(group_name);
                 match user {
@@ -309,7 +305,7 @@ impl Groups for UsersCache {
         }
     }
 
-    fn get_current_groupname(&self) -> Option<Arc<String>> {
+    fn get_current_groupname(&self) -> Option<Arc<OsString>> {
         let gid = self.get_current_gid();
         self.get_group_by_gid(gid).map(|g| g.name_arc.clone())
     }
@@ -325,7 +321,7 @@ impl Groups for UsersCache {
         }
     }
 
-    fn get_effective_groupname(&self) -> Option<Arc<String>> {
+    fn get_effective_groupname(&self) -> Option<Arc<OsString>> {
         let gid = self.get_effective_gid();
         self.get_group_by_gid(gid).map(|g| g.name_arc.clone())
     }
