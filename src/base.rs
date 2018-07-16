@@ -48,7 +48,9 @@ use libc::{
     getegid,
     setpwent,
     getpwent,
-    endpwent
+    endpwent,
+    getgrouplist,
+    c_int,
 };
 use libc::passwd as c_passwd;
 use libc::group as c_group;
@@ -94,6 +96,11 @@ impl User {
     /// Returns the ID of this user’s primary group.
     pub fn primary_group_id(&self) -> gid_t {
         self.primary_group.clone()
+    }
+
+    /// Returns a list of groups this user is a member of
+    pub fn groups(&self) -> Option<Vec<Group>> {
+        get_user_groups(self.name(), self.primary_group_id())
     }
 }
 
@@ -343,6 +350,32 @@ pub fn get_effective_groupname() -> Option<String> {
     let gid = get_effective_gid();
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
 }
+
+/// Returns groups for a provided user name and primary group id
+pub fn get_user_groups(username: &str, gid: gid_t) -> Option<Vec<Group>> {
+    unsafe {
+        let mut buff: Vec<i32> = vec![0; 1024];
+
+        let name = CString::new(username).unwrap();
+        let mut count = buff.len() as c_int;
+
+        if getgrouplist(name.as_ptr(), gid as i32, buff.as_mut_ptr(), &mut count) < 0 {
+            return None;
+        }
+
+        let mut groups: Vec<Group> = Vec::new();
+        for i in 0..count {
+            let g = get_group_by_gid(buff[i as usize] as u32);
+            match g {
+                Some(g) => groups.push(g),
+                None => ()
+            }
+        }
+
+        Some(groups)
+    }
+}
+
 
 
 /// An iterator over every user present on the system.
@@ -735,6 +768,15 @@ mod test {
         // User names containing '\0' cannot be used (for now)
         let user = get_user_by_name("user\0");
         assert!(user.is_none());
+    }
+
+    #[test]
+    fn user_get_groups() {
+        let uid = get_current_uid();
+        let user = get_user_by_uid(uid).unwrap();
+        let groups = user.groups().unwrap();
+        println!("Groups: {:?}", groups);
+        assert!(groups.len() > 0);
     }
 
     #[test]
