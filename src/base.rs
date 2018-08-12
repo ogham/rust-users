@@ -354,12 +354,22 @@ pub fn get_effective_groupname() -> Option<String> {
 /// Returns groups for a provided user name and primary group id
 pub fn get_user_groups(username: &str, gid: gid_t) -> Option<Vec<Group>> {
     unsafe {
+        // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
+        #[cfg(all(unix, target_os="macos"))]
         let mut buff: Vec<i32> = vec![0; 1024];
+        #[cfg(all(unix, not(target_os="macos")))]
+        let mut buff: Vec<gid_t> = vec![0; 1024];
 
         let name = CString::new(username).unwrap();
         let mut count = buff.len() as c_int;
 
-        if getgrouplist(name.as_ptr(), gid as i32, buff.as_mut_ptr(), &mut count) < 0 {
+        // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
+        #[cfg(all(unix, target_os="macos"))]
+        let res = getgrouplist(name.as_ptr(), gid as i32, buff.as_mut_ptr(), &mut count);
+        #[cfg(all(unix, not(target_os="macos")))]
+        let res = getgrouplist(name.as_ptr(), gid, buff.as_mut_ptr(), &mut count);
+
+        if res < 0 {
             return None;
         }
 
