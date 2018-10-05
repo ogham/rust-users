@@ -417,7 +417,7 @@ pub mod os {
     /// Although the `passwd` struct is common among Unix systems, its actual
     /// format can vary. See the definitions in the `base` module to check which
     /// fields are actually present.
-    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd"))]
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd", target_os = "solaris"))]
     pub mod unix {
         use std::path::Path;
 
@@ -505,10 +505,10 @@ pub mod os {
             }
         }
 
-        #[cfg(any(target_os = "linux"))]
+        #[cfg(any(target_os = "linux", target_os = "solaris"))]
         use super::super::User;
 
-        #[cfg(any(target_os = "linux"))]
+        #[cfg(any(target_os = "linux", target_os = "solaris"))]
         impl UserExt for User {
             fn home_dir(&self) -> &Path {
                 Path::new(&self.extras.home_dir)
@@ -672,11 +672,11 @@ pub mod os {
     pub type UserExtras = bsd::UserExtras;
 
     /// Any extra fields on a `User` specific to the current platform.
-    #[cfg(any(target_os = "linux"))]
+    #[cfg(any(target_os = "linux", target_os = "solaris"))]
     pub type UserExtras = unix::UserExtras;
 
     /// Any extra fields on a `Group` specific to the current platform.
-    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd"))]
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd", target_os = "solaris"))]
     pub type GroupExtras = unix::GroupExtras;
 }
 
