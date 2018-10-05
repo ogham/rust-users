@@ -9,5 +9,10 @@ license = "MIT"
 readme = "README.md"
 version = "0.7.0"
 
+[features]
+default = ["cache", "mock"]
+cache = []
+mock = []
+
 [dependencies]
 libc = "0.2"

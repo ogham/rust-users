@@ -126,10 +126,13 @@ pub use base::{get_effective_gid, get_effective_groupname};
 pub use base::{get_user_groups};
 pub use base::AllUsers;
 
-
+#[cfg(feature = "cache")]
 pub mod cache;
+
+#[cfg(feature = "cache")]
 pub use cache::UsersCache;
 
+#[cfg(feature = "mock")]
 pub mod mock;
 
 pub mod switch;
