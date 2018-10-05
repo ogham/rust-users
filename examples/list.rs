@@ -1,8 +1,8 @@
 extern crate users;
-use users::{User, AllUsers};
+use users::{User, all_users};
 
 fn main() {
-    let mut users: Vec<User> = unsafe { AllUsers::new() }.collect();
+    let mut users: Vec<User> = unsafe { all_users() }.collect();
     users.sort_by(|a, b| a.uid().cmp(&b.uid()));
 
     for user in users {

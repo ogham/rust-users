@@ -68,7 +68,7 @@ use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::sync::Arc;
 
-use base::{User, Group, AllUsers};
+use base::{User, Group, all_users};
 use traits::{Users, Groups};
 
 
@@ -134,7 +134,7 @@ impl UsersCache {
     pub unsafe fn with_all_users() -> Self {
         let cache = UsersCache::new();
 
-        for user in AllUsers::new() {
+        for user in all_users() {
             let uid = user.uid();
             let user_arc = Arc::new(user);
             cache.users.forward.borrow_mut().insert(uid, Some(user_arc.clone()));
