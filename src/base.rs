@@ -181,23 +181,8 @@ unsafe fn from_raw_buf(p: *const c_char) -> OsString {
     OsStr::from_bytes(CStr::from_ptr(p).to_bytes()).to_os_string()
 }
 
-/// Converts a raw pointer, which could be null, into a safe reference that
-/// might be `None` instead.
-///
-/// This is basically the unstable `ptr_as_ref` feature:
-/// https://github.com/rust-lang/rust/issues/27780
-/// When that stabilises, this can be replaced.
-unsafe fn ptr_as_ref<T>(pointer: *const T) -> Option<T> {
-    if pointer.is_null() {
-        None
-    }
-    else {
-        Some(read(pointer))
-    }
-}
-
 unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
-    if let Some(passwd) = ptr_as_ref(pointer) {
+    if let Some(passwd) = pointer.as_ref().map(|p| read(p)) {
         let name = Arc::new(from_raw_buf(passwd.pw_name));
 
         Some(User {
@@ -213,7 +198,7 @@ unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
 }
 
 unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
-    if let Some(group) = ptr_as_ref(pointer) {
+    if let Some(group) = pointer.as_ref().map(|p| read(p)) {
         let name = Arc::new(from_raw_buf(group.gr_name));
 
         Some(Group {
