@@ -352,7 +352,7 @@ pub fn get_effective_groupname() -> Option<OsString> {
 }
 
 /// Returns groups for a provided user name and primary group id
-pub fn get_user_groups(username: &str, gid: gid_t) -> Option<Vec<Group>> {
+pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Option<Vec<Group>> {
     unsafe {
         // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
         #[cfg(all(unix, target_os="macos"))]
@@ -360,7 +360,7 @@ pub fn get_user_groups(username: &str, gid: gid_t) -> Option<Vec<Group>> {
         #[cfg(all(unix, not(target_os="macos")))]
         let mut buff: Vec<gid_t> = vec![0; 1024];
 
-        let name = CString::new(username).unwrap();
+        let name = CString::new(username.as_ref().as_bytes()).unwrap();
         let mut count = buff.len() as c_int;
 
         // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
@@ -617,6 +617,7 @@ pub mod os {
     /// C structs.
     #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd"))]
     pub mod bsd {
+        use std::ffi::OsStr;
         use std::path::Path;
         use libc::time_t;
         use super::super::{c_passwd, User};
