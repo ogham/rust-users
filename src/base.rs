@@ -86,7 +86,7 @@ impl User {
 
     /// Returns this user’s ID.
     pub fn uid(&self) -> uid_t {
-        self.uid.clone()
+        self.uid
     }
 
     /// Returns this user’s name.
@@ -96,7 +96,7 @@ impl User {
 
     /// Returns the ID of this user’s primary group.
     pub fn primary_group_id(&self) -> gid_t {
-        self.primary_group.clone()
+        self.primary_group
     }
 
     /// Returns a list of groups this user is a member of
@@ -150,7 +150,7 @@ impl Group {
 
     /// Returns this group’s ID.
     pub fn gid(&self) -> gid_t {
-        self.gid.clone()
+        self.gid
     }
 
     /// Returns this group's name.
@@ -690,11 +690,11 @@ pub mod os {
 
         impl UserExt for User {
             fn password_change_time(&self) -> time_t {
-                self.extras.change.clone()
+                self.extras.change
             }
 
             fn password_expire_time(&self) -> time_t {
-                self.extras.expire.clone()
+                self.extras.expire
             }
         }
 
