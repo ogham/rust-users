@@ -29,8 +29,9 @@
 //! best bet is to check for them yourself before passing strings into any
 //! functions.
 
-use std::ffi::{CStr, CString};
+use std::ffi::{CStr, CString, OsStr, OsString};
 use std::fmt;
+use std::os::unix::ffi::OsStrExt;
 use std::ptr::read;
 use std::sync::Arc;
 
@@ -62,9 +63,9 @@ pub struct User {
     primary_group: gid_t,
     extras: os::UserExtras,
 
-    /// This user’s name, as an owned `String` possibly shared with a cache.
+    /// This user’s name, as an owned `OsString` possibly shared with a cache.
     /// Prefer using the `name()` accessor to using this field, if possible.
-    pub name_arc: Arc<String>,
+    pub name_arc: Arc<OsString>,
 }
 
 impl User {
@@ -74,10 +75,10 @@ impl User {
     ///
     /// This method does not actually create a new user on the system—it
     /// should only be used for comparing users in tests.
-    pub fn new(uid: uid_t, name: &str, primary_group: gid_t) -> User {
+    pub fn new<S: AsRef<OsStr> + ?Sized>(uid: uid_t, name: &S, primary_group: gid_t) -> User {
         User {
             uid: uid,
-            name_arc: Arc::new(name.to_owned()),
+            name_arc: Arc::new(name.into()),
             primary_group: primary_group,
             extras: os::UserExtras::default(),
         }
@@ -89,7 +90,7 @@ impl User {
     }
 
     /// Returns this user’s name.
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &OsStr {
         &**self.name_arc
     }
 
@@ -115,7 +116,7 @@ impl fmt::Debug for User {
              .finish()
         }
         else {
-            write!(f, "User({}, {})", self.uid(), self.name())
+            write!(f, "User({}, {})", self.uid(), self.name().to_string_lossy())
         }
     }
 }
@@ -127,9 +128,9 @@ pub struct Group {
     gid: gid_t,
     extras: os::GroupExtras,
 
-    /// This group’s name, as an owned `String` possibly shared with a cache.
+    /// This group’s name, as an owned `OsString` possibly shared with a cache.
     /// Prefer using the `name()` accessor to using this field, if possible.
-    pub name_arc: Arc<String>,
+    pub name_arc: Arc<OsString>,
 }
 
 impl Group {
@@ -139,10 +140,10 @@ impl Group {
     ///
     /// This method does not actually create a new group on the system—it
     /// should only be used for comparing groups in tests.
-    pub fn new(gid: gid_t, name: &str) -> Self {
+    pub fn new<S: AsRef<OsStr> + ?Sized>(gid: gid_t, name: &S) -> Self {
         Group {
             gid: gid,
-            name_arc: Arc::new(String::from(name)),
+            name_arc: Arc::new(name.into()),
             extras: os::GroupExtras::default(),
         }
     }
@@ -153,7 +154,7 @@ impl Group {
     }
 
     /// Returns this group's name.
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &OsStr {
         &**self.name_arc
     }
 }
@@ -168,20 +169,19 @@ impl fmt::Debug for Group {
              .finish()
         }
         else {
-            write!(f, "Group({}, {})", self.gid(), self.name())
+            write!(f, "Group({}, {})", self.gid(), self.name().to_string_lossy())
         }
     }
 }
 
 
-/// Reads data from a `*char` field in `c_passwd` or `g_group` into a UTF-8
-/// `String` for use in a user or group value.
+/// Reads data from a `*char` field in `c_passwd` or `g_group` into an
+/// `OsString` for use in a user or group value.
 ///
-/// Although `from_utf8_lossy` returns a clone-on-write string, we immediately
-/// clone it anyway: the underlying buffer is managed by the C library, not by
-/// us, so we *need* to move data out of it before the next user gets read.
-unsafe fn from_raw_buf(p: *const c_char) -> String {
-    CStr::from_ptr(p).to_string_lossy().into_owned()
+/// The underlying buffer is managed by the C library, not by us, so we *need*
+/// to move data out of it before the next user gets read.
+unsafe fn from_raw_buf(p: *const c_char) -> OsString {
+    OsStr::from_bytes(CStr::from_ptr(p).to_bytes()).to_os_string()
 }
 
 /// Converts a raw pointer, which could be null, into a safe reference that
@@ -237,7 +237,7 @@ unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
 /// `members[1]`, and so on, until that null pointer is reached. It doesn't
 /// specify whether we should expect a null pointer or a pointer to a null
 /// pointer, so we check for both here!
-unsafe fn members(groups: *mut *mut c_char) -> Vec<String> {
+unsafe fn members(groups: *mut *mut c_char) -> Vec<OsString> {
     let mut members = Vec::new();
 
     for i in 0.. {
@@ -266,8 +266,8 @@ pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
 
 /// Searches for a `User` with the given username in the system’s user database.
 /// Returns it if one is found, otherwise returns `None`.
-pub fn get_user_by_name(username: &str) -> Option<User> {
-    if let Ok(username) = CString::new(username) {
+pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> {
+    if let Ok(username) = CString::new(username.as_ref().as_bytes()) {
         unsafe {
             let passwd = getpwnam(username.as_ptr());
             passwd_to_user(passwd)
@@ -292,8 +292,8 @@ pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
 
 /// Searches for a `Group` with the given group name in the system’s group database.
 /// Returns it if one is found, otherwise returns `None`.
-pub fn get_group_by_name(group_name: &str) -> Option<Group> {
-    if let Ok(group_name) = CString::new(group_name) {
+pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(group_name: &S) -> Option<Group> {
+    if let Ok(group_name) = CString::new(group_name.as_ref().as_bytes()) {
         unsafe {
             let group = getgrnam(group_name.as_ptr());
             struct_to_group(group)
@@ -313,7 +313,7 @@ pub fn get_current_uid() -> uid_t {
 }
 
 /// Returns the username of the user running the process.
-pub fn get_current_username() -> Option<String> {
+pub fn get_current_username() -> Option<OsString> {
     let uid = get_current_uid();
     get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name_arc).unwrap())
 }
@@ -324,7 +324,7 @@ pub fn get_effective_uid() -> uid_t {
 }
 
 /// Returns the username of the effective user running the process.
-pub fn get_effective_username() -> Option<String> {
+pub fn get_effective_username() -> Option<OsString> {
     let uid = get_effective_uid();
     get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name_arc).unwrap())
 }
@@ -335,7 +335,7 @@ pub fn get_current_gid() -> gid_t {
 }
 
 /// Returns the groupname of the user running the process.
-pub fn get_current_groupname() -> Option<String> {
+pub fn get_current_groupname() -> Option<OsString> {
     let gid = get_current_gid();
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
 }
@@ -346,7 +346,7 @@ pub fn get_effective_gid() -> gid_t {
 }
 
 /// Returns the groupname of the effective user running the process.
-pub fn get_effective_groupname() -> Option<String> {
+pub fn get_effective_groupname() -> Option<OsString> {
     let gid = get_effective_gid();
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
 }
@@ -462,7 +462,8 @@ pub mod os {
     /// fields are actually present.
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd", target_os = "solaris"))]
     pub mod unix {
-        use std::path::Path;
+        use std::ffi::{OsStr, OsString};
+        use std::path::{Path, PathBuf};
 
         use super::super::{c_passwd, c_group, members, from_raw_buf, Group};
 
@@ -475,7 +476,7 @@ pub mod os {
             /// Sets this user value’s home directory to the given string.
             /// Can be used to construct test users, which by default come with a
             /// dummy home directory string.
-            fn with_home_dir(self, home_dir: &str) -> Self;
+            fn with_home_dir<S: AsRef<OsStr> + ?Sized>(self, home_dir: &S) -> Self;
 
             /// Returns a path to this user’s shell.
             fn shell(&self) -> &Path;
@@ -483,18 +484,15 @@ pub mod os {
             /// Sets this user’s shell path to the given string.
             /// Can be used to construct test users, which by default come with a
             /// dummy shell field.
-            fn with_shell(self, shell: &str) -> Self;
+            fn with_shell<S: AsRef<OsStr> + ?Sized>(self, shell: &S) -> Self;
 
             /// Returns the user's encrypted password.
-            fn password(&self) -> &str;
+            fn password(&self) -> &OsStr;
 
             /// Sets this user's password to the given string.
             /// Can be used to construct tests users, which by default come with a
             /// dummy password field.
-            fn with_password(self, password: &str) -> Self;
-
-            // TODO(ogham): Isn’t it weird that the setters take string slices, but
-            // the getters return paths?
+            fn with_password<S: AsRef<OsStr> + ?Sized>(self, password: &S) -> Self;
         }
 
         /// Unix-specific extensions for `Group`s.
@@ -502,10 +500,10 @@ pub mod os {
 
             /// Returns a slice of the list of users that are in this group as
             /// their non-primary group.
-            fn members(&self) -> &[String];
+            fn members(&self) -> &[OsString];
 
             /// Adds a new member to this group.
-            fn add_member(self, name: &str) -> Self;
+            fn add_member<S: AsRef<OsStr> + ?Sized>(self, name: &S) -> Self;
         }
 
         /// Unix-specific fields for `User`s.
@@ -513,21 +511,21 @@ pub mod os {
         pub struct UserExtras {
 
             /// The path to the user’s home directory.
-            pub home_dir: String,
+            pub home_dir: PathBuf,
 
             /// The path to the user’s shell.
-            pub shell: String,
+            pub shell: PathBuf,
 
             /// The user's encrypted password.
-            pub password: String,
+            pub password: OsString,
         }
 
         impl Default for UserExtras {
             fn default() -> UserExtras {
                 UserExtras {
-                    home_dir: String::from("/var/empty"),
-                    shell:    String::from("/bin/false"),
-                    password: String::from("*"),
+                    home_dir: "/var/empty".into(),
+                    shell:    "/bin/false".into(),
+                    password: "*".into(),
                 }
             }
         }
@@ -536,8 +534,8 @@ pub mod os {
             /// Extract the OS-specific fields from the C `passwd` struct that
             /// we just read.
             pub unsafe fn from_passwd(passwd: c_passwd) -> UserExtras {
-                let home_dir = from_raw_buf(passwd.pw_dir);
-                let shell    = from_raw_buf(passwd.pw_shell);
+                let home_dir = from_raw_buf(passwd.pw_dir).into();
+                let shell    = from_raw_buf(passwd.pw_shell).into();
                 let password = from_raw_buf(passwd.pw_passwd);
 
                 UserExtras {
@@ -557,8 +555,8 @@ pub mod os {
                 Path::new(&self.extras.home_dir)
             }
 
-            fn with_home_dir(mut self, home_dir: &str) -> User {
-                self.extras.home_dir = home_dir.to_owned();
+            fn with_home_dir<S: AsRef<OsStr> + ?Sized>(mut self, home_dir: &S) -> User {
+                self.extras.home_dir = home_dir.into();
                 self
             }
 
@@ -566,17 +564,17 @@ pub mod os {
                 Path::new(&self.extras.shell)
             }
 
-            fn with_shell(mut self, shell: &str) -> User {
-                self.extras.shell = shell.to_owned();
+            fn with_shell<S: AsRef<OsStr> + ?Sized>(mut self, shell: &S) -> User {
+                self.extras.shell = shell.into();
                 self
             }
 
-            fn password(&self) -> &str {
+            fn password(&self) -> &OsStr {
                 &self.extras.password
             }
 
-            fn with_password(mut self, password: &str) -> User {
-                self.extras.password = password.to_owned();
+            fn with_password<S: AsRef<OsStr> + ?Sized>(mut self, password: &S) -> User {
+                self.extras.password = password.into();
                 self
             }
         }
@@ -586,7 +584,7 @@ pub mod os {
         pub struct GroupExtras {
 
             /// Vector of usernames that are members of this group.
-            pub members: Vec<String>,
+            pub members: Vec<OsString>,
         }
 
         impl GroupExtras {
@@ -602,12 +600,12 @@ pub mod os {
         }
 
         impl GroupExt for Group {
-            fn members(&self) -> &[String] {
+            fn members(&self) -> &[OsString] {
                 &*self.extras.members
             }
 
-            fn add_member(mut self, member: &str) -> Group {
-                self.extras.members.push(member.to_owned());
+            fn add_member<S: AsRef<OsStr> + ?Sized>(mut self, member: &S) -> Group {
+                self.extras.members.push(member.into());
                 self
             }
         }
@@ -655,8 +653,8 @@ pub mod os {
                 Path::new(&self.extras.extras.home_dir)
             }
 
-            fn with_home_dir(mut self, home_dir: &str) -> User {
-                self.extras.extras.home_dir = home_dir.to_owned();
+            fn with_home_dir<S: AsRef<OsStr> + ?Sized>(mut self, home_dir: &S) -> User {
+                self.extras.extras.home_dir = home_dir.into();
                 self
             }
 
@@ -664,17 +662,17 @@ pub mod os {
                 Path::new(&self.extras.extras.shell)
             }
 
-            fn with_shell(mut self, shell: &str) -> User {
-                self.extras.extras.shell = shell.to_owned();
+            fn with_shell<S: AsRef<OsStr> + ?Sized>(mut self, shell: &S) -> User {
+                self.extras.extras.shell = shell.into();
                 self
             }
 
-            fn password(&self) -> &str {
+            fn password(&self) -> &OsStr {
                 &self.extras.extras.password
             }
 
-            fn with_password(mut self, password: &str) -> User {
-                self.extras.extras.password = password.to_owned();
+            fn with_password<S: AsRef<OsStr> + ?Sized>(mut self, password: &S) -> User {
+                self.extras.extras.password = password.into();
                 self
             }
         }

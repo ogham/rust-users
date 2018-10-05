@@ -42,7 +42,7 @@
 //! ```rust
 //! use users::{get_user_by_uid, get_current_uid};
 //! let user = get_user_by_uid(get_current_uid()).unwrap();
-//! println!("Hello, {}!", user.name());
+//! println!("Hello, {}!", user.name().to_string_lossy());
 //! ```
 //!
 //! This code assumes (with `unwrap()`) that the user hasn’t been deleted after
@@ -75,7 +75,7 @@
 //! let mut cache = UsersCache::new();
 //! let uid = cache.get_current_uid();
 //! let user = cache.get_user_by_uid(uid).unwrap();
-//! println!("Hello again, {}!", user.name());
+//! println!("Hello again, {}!", user.name().to_string_lossy());
 //! ```
 //!
 //! This cache is **only additive**: it’s not possible to drop it, or erase
@@ -98,7 +98,7 @@
 //! use users::{Users, Groups, UsersCache};
 //! let mut cache = UsersCache::new();
 //! let group = cache.get_group_by_name("admin").expect("No such group 'admin'!");
-//! println!("The '{}' group has the ID {}", group.name(), group.gid());
+//! println!("The '{}' group has the ID {}", group.name().to_string_lossy(), group.gid());
 //! ```
 //!
 //!
