@@ -93,12 +93,13 @@ struct BiMap<K, V> {
     backward: RefCell< HashMap<Arc<OsString>, Option<K>> >,
 }
 
+
 // Default has to be impl'd manually here, because there's no
 // Default impl on User or Group, even though those types aren't
 // needed to produce a default instance of any HashMaps...
 
 impl Default for UsersCache {
-    fn default() -> UsersCache {
+    fn default() -> Self {
         UsersCache {
             users: BiMap {
                 forward:  RefCell::new(HashMap::new()),
@@ -118,10 +119,11 @@ impl Default for UsersCache {
     }
 }
 
+
 impl UsersCache {
 
     /// Creates a new empty cache.
-    pub fn new() -> UsersCache {
+    pub fn new() -> Self {
         UsersCache::default()
     }
 
@@ -129,7 +131,7 @@ impl UsersCache {
     ///
     /// This is `unsafe` because we cannot prevent data races if two caches
     /// were attempted to be initialised on different threads at the same time.
-    pub unsafe fn with_all_users() -> UsersCache {
+    pub unsafe fn with_all_users() -> Self {
         let cache = UsersCache::new();
 
         for user in AllUsers::new() {
@@ -142,6 +144,7 @@ impl UsersCache {
         cache
     }
 }
+
 
 impl Users for UsersCache {
     fn get_user_by_uid(&self, uid: uid_t) -> Option<Arc<User>> {
@@ -233,6 +236,7 @@ impl Users for UsersCache {
         self.get_user_by_uid(uid).map(|u| u.name_arc.clone())
     }
 }
+
 
 impl Groups for UsersCache {
     fn get_group_by_gid(&self, gid: gid_t) -> Option<Arc<Group>> {

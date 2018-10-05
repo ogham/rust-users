@@ -72,10 +72,11 @@ pub struct MockUsers {
     uid: uid_t,
 }
 
+
 impl MockUsers {
 
     /// Create a new, empty mock users object.
-    pub fn with_current_uid(current_uid: uid_t) -> MockUsers {
+    pub fn with_current_uid(current_uid: uid_t) -> Self {
         MockUsers {
             users: HashMap::new(),
             groups: HashMap::new(),
@@ -93,6 +94,7 @@ impl MockUsers {
         self.groups.insert(group.gid(), Arc::new(group))
     }
 }
+
 
 impl Users for MockUsers {
     fn get_user_by_uid(&self, uid: uid_t) -> Option<Arc<User>> {
@@ -120,6 +122,7 @@ impl Users for MockUsers {
     }
 }
 
+
 impl Groups for MockUsers {
     fn get_group_by_gid(&self, gid: gid_t) -> Option<Arc<Group>> {
         self.groups.get(&gid).cloned()
@@ -145,6 +148,7 @@ impl Groups for MockUsers {
         self.groups.get(&self.uid).map(|u| u.name_arc.clone())
     }
 }
+
 
 #[cfg(test)]
 mod test {

@@ -75,7 +75,7 @@ impl User {
     ///
     /// This method does not actually create a new user on the system—it
     /// should only be used for comparing users in tests.
-    pub fn new<S: AsRef<OsStr> + ?Sized>(uid: uid_t, name: &S, primary_group: gid_t) -> User {
+    pub fn new<S: AsRef<OsStr> + ?Sized>(uid: uid_t, name: &S, primary_group: gid_t) -> Self {
         let name_arc = Arc::new(name.into());
         let extras = os::UserExtras::default();
     
@@ -412,7 +412,7 @@ impl AllUsers {
     /// So to iterate all users, construct the iterator inside an `unsafe`
     /// block, then make sure to not make a new instance of it until
     /// iteration is over.
-    pub unsafe fn new() -> AllUsers {
+    pub unsafe fn new() -> Self {
         setpwent();
         AllUsers(())
     }
@@ -517,7 +517,7 @@ pub mod os {
         }
 
         impl Default for UserExtras {
-            fn default() -> UserExtras {
+            fn default() -> Self {
                 UserExtras {
                     home_dir: "/var/empty".into(),
                     shell:    "/bin/false".into(),
@@ -529,7 +529,7 @@ pub mod os {
         impl UserExtras {
             /// Extract the OS-specific fields from the C `passwd` struct that
             /// we just read.
-            pub unsafe fn from_passwd(passwd: c_passwd) -> UserExtras {
+            pub unsafe fn from_passwd(passwd: c_passwd) -> Self {
                 let home_dir = from_raw_buf(passwd.pw_dir).into();
                 let shell    = from_raw_buf(passwd.pw_shell).into();
                 let password = from_raw_buf(passwd.pw_passwd);
@@ -547,7 +547,7 @@ pub mod os {
                 Path::new(&self.extras.home_dir)
             }
 
-            fn with_home_dir<S: AsRef<OsStr> + ?Sized>(mut self, home_dir: &S) -> User {
+            fn with_home_dir<S: AsRef<OsStr> + ?Sized>(mut self, home_dir: &S) -> Self {
                 self.extras.home_dir = home_dir.into();
                 self
             }
@@ -556,7 +556,7 @@ pub mod os {
                 Path::new(&self.extras.shell)
             }
 
-            fn with_shell<S: AsRef<OsStr> + ?Sized>(mut self, shell: &S) -> User {
+            fn with_shell<S: AsRef<OsStr> + ?Sized>(mut self, shell: &S) -> Self {
                 self.extras.shell = shell.into();
                 self
             }
@@ -565,7 +565,7 @@ pub mod os {
                 &self.extras.password
             }
 
-            fn with_password<S: AsRef<OsStr> + ?Sized>(mut self, password: &S) -> User {
+            fn with_password<S: AsRef<OsStr> + ?Sized>(mut self, password: &S) -> Self {
                 self.extras.password = password.into();
                 self
             }
@@ -582,7 +582,7 @@ pub mod os {
         impl GroupExtras {
             /// Extract the OS-specific fields from the C `group` struct that
             /// we just read.
-            pub unsafe fn from_struct(group: c_group) -> GroupExtras {
+            pub unsafe fn from_struct(group: c_group) -> Self {
                 GroupExtras { members: members(group.gr_mem) }
             }
         }
@@ -592,7 +592,7 @@ pub mod os {
                 &*self.extras.members
             }
 
-            fn add_member<S: AsRef<OsStr> + ?Sized>(mut self, member: &S) -> Group {
+            fn add_member<S: AsRef<OsStr> + ?Sized>(mut self, member: &S) -> Self {
                 self.extras.members.push(member.into());
                 self
             }
@@ -628,7 +628,7 @@ pub mod os {
         impl UserExtras {
             /// Extract the OS-specific fields from the C `passwd` struct that
             /// we just read.
-            pub unsafe fn from_passwd(passwd: c_passwd) -> UserExtras {
+            pub unsafe fn from_passwd(passwd: c_passwd) -> Self {
                 UserExtras {
                     change: passwd.pw_change,
                     expire: passwd.pw_expire,
@@ -642,7 +642,7 @@ pub mod os {
                 Path::new(&self.extras.extras.home_dir)
             }
 
-            fn with_home_dir<S: AsRef<OsStr> + ?Sized>(mut self, home_dir: &S) -> User {
+            fn with_home_dir<S: AsRef<OsStr> + ?Sized>(mut self, home_dir: &S) -> Self {
                 self.extras.extras.home_dir = home_dir.into();
                 self
             }
@@ -651,7 +651,7 @@ pub mod os {
                 Path::new(&self.extras.extras.shell)
             }
 
-            fn with_shell<S: AsRef<OsStr> + ?Sized>(mut self, shell: &S) -> User {
+            fn with_shell<S: AsRef<OsStr> + ?Sized>(mut self, shell: &S) -> Self {
                 self.extras.extras.shell = shell.into();
                 self
             }
@@ -660,7 +660,7 @@ pub mod os {
                 &self.extras.extras.password
             }
 
-            fn with_password<S: AsRef<OsStr> + ?Sized>(mut self, password: &S) -> User {
+            fn with_password<S: AsRef<OsStr> + ?Sized>(mut self, password: &S) -> Self {
                 self.extras.extras.password = password.into();
                 self
             }
@@ -687,7 +687,7 @@ pub mod os {
         }
 
         impl Default for UserExtras {
-            fn default() -> UserExtras {
+            fn default() -> Self {
                 UserExtras {
                     extras: super::unix::UserExtras::default(),
                     change: 0,
