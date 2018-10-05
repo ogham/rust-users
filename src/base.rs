@@ -76,12 +76,10 @@ impl User {
     /// This method does not actually create a new user on the system—it
     /// should only be used for comparing users in tests.
     pub fn new<S: AsRef<OsStr> + ?Sized>(uid: uid_t, name: &S, primary_group: gid_t) -> User {
-        User {
-            uid: uid,
-            name_arc: Arc::new(name.into()),
-            primary_group: primary_group,
-            extras: os::UserExtras::default(),
-        }
+        let name_arc = Arc::new(name.into());
+        let extras = os::UserExtras::default();
+    
+        User { uid, name_arc, primary_group, extras }
     }
 
     /// Returns this user’s ID.
@@ -141,11 +139,10 @@ impl Group {
     /// This method does not actually create a new group on the system—it
     /// should only be used for comparing groups in tests.
     pub fn new<S: AsRef<OsStr> + ?Sized>(gid: gid_t, name: &S) -> Self {
-        Group {
-            gid: gid,
-            name_arc: Arc::new(name.into()),
-            extras: os::GroupExtras::default(),
-        }
+        let name_arc = Arc::new(name.into());
+        let extras = os::GroupExtras::default();
+    
+        Group { gid, name_arc, extras }
     }
 
     /// Returns this group’s ID.
@@ -153,7 +150,7 @@ impl Group {
         self.gid
     }
 
-    /// Returns this group's name.
+    /// Returns this group’s name.
     pub fn name(&self) -> &OsStr {
         &**self.name_arc
     }
@@ -234,7 +231,7 @@ unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
 ///
 /// The list of members is, in true C fashion, a pointer to a pointer of
 /// characters, terminated by a null pointer. We check `members[0]`, then
-/// `members[1]`, and so on, until that null pointer is reached. It doesn't
+/// `members[1]`, and so on, until that null pointer is reached. It doesn’t
 /// specify whether we should expect a null pointer or a pointer to a null
 /// pointer, so we check for both here!
 unsafe fn members(groups: *mut *mut c_char) -> Vec<OsString> {
@@ -400,9 +397,9 @@ impl AllUsers {
     /// ## Unsafety
     ///
     /// This constructor is marked as `unsafe`, which is odd for a crate
-    /// that's meant to be a safe interface. It *has* to be unsafe because
+    /// that’s meant to be a safe interface. It *has* to be unsafe because
     /// we cannot guarantee that the underlying C functions,
-    /// `getpwent`/`setpwent`/`endpwent` that iterate over the system's
+    /// `getpwent`/`setpwent`/`endpwent` that iterate over the system’s
     /// `passwd` entries, are called in a thread-safe manner.
     ///
     /// These functions [modify a global
@@ -485,10 +482,10 @@ pub mod os {
             /// dummy shell field.
             fn with_shell<S: AsRef<OsStr> + ?Sized>(self, shell: &S) -> Self;
 
-            /// Returns the user's encrypted password.
+            /// Returns the user’s encrypted password.
             fn password(&self) -> &OsStr;
 
-            /// Sets this user's password to the given string.
+            /// Sets this user’s password to the given string.
             /// Can be used to construct tests users, which by default come with a
             /// dummy password field.
             fn with_password<S: AsRef<OsStr> + ?Sized>(self, password: &S) -> Self;
@@ -515,7 +512,7 @@ pub mod os {
             /// The path to the user’s shell.
             pub shell: PathBuf,
 
-            /// The user's encrypted password.
+            /// The user’s encrypted password.
             pub password: OsString,
         }
 
@@ -537,11 +534,7 @@ pub mod os {
                 let shell    = from_raw_buf(passwd.pw_shell).into();
                 let password = from_raw_buf(passwd.pw_passwd);
 
-                UserExtras {
-                    home_dir:  home_dir,
-                    shell:     shell,
-                    password:  password,
-                }
+                UserExtras { home_dir, shell, password }
             }
         }
 
@@ -590,11 +583,7 @@ pub mod os {
             /// Extract the OS-specific fields from the C `group` struct that
             /// we just read.
             pub unsafe fn from_struct(group: c_group) -> GroupExtras {
-                let members = members(group.gr_mem);
-
-                GroupExtras {
-                    members: members,
-                }
+                GroupExtras { members: members(group.gr_mem) }
             }
         }
 
@@ -680,10 +669,10 @@ pub mod os {
         /// BSD-specific accessors for `User`s.
         pub trait UserExt {
 
-            /// Returns this user's password change timestamp.
+            /// Returns this user’s password change timestamp.
             fn password_change_time(&self) -> time_t;
 
-            /// Returns this user's password expiry timestamp.
+            /// Returns this user’s password expiry timestamp.
             fn password_expire_time(&self) -> time_t;
         }
 
