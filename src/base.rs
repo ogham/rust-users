@@ -353,35 +353,34 @@ pub fn get_effective_groupname() -> Option<OsString> {
 
 /// Returns groups for a provided user name and primary group id
 pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Option<Vec<Group>> {
-    unsafe {
-        // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
-        #[cfg(all(unix, target_os="macos"))]
-        let mut buff: Vec<i32> = vec![0; 1024];
-        #[cfg(all(unix, not(target_os="macos")))]
-        let mut buff: Vec<gid_t> = vec![0; 1024];
+    // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
+    #[cfg(all(unix, target_os="macos"))]
+    let mut buff: Vec<i32> = vec![0; 1024];
+    #[cfg(all(unix, not(target_os="macos")))]
+    let mut buff: Vec<gid_t> = vec![0; 1024];
 
-        let name = CString::new(username.as_ref().as_bytes()).unwrap();
-        let mut count = buff.len() as c_int;
+    let name = CString::new(username.as_ref().as_bytes()).unwrap();
+    let mut count = buff.len() as c_int;
 
-        // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
-        #[cfg(all(unix, target_os="macos"))]
-        let res = getgrouplist(name.as_ptr(), gid as i32, buff.as_mut_ptr(), &mut count);
-        #[cfg(all(unix, not(target_os="macos")))]
-        let res = getgrouplist(name.as_ptr(), gid, buff.as_mut_ptr(), &mut count);
+    // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
+    #[cfg(all(unix, target_os="macos"))]
+    let res = unsafe {
+        getgrouplist(name.as_ptr(), gid as i32, buff.as_mut_ptr(), &mut count)
+    };
+    
+    #[cfg(all(unix, not(target_os="macos")))]
+    let res = unsafe {
+        getgrouplist(name.as_ptr(), gid, buff.as_mut_ptr(), &mut count)
+    };
 
-        if res < 0 {
-            return None;
-        }
-
-        let mut groups: Vec<Group> = Vec::new();
-        for i in 0..count {
-            let g = get_group_by_gid(buff[i as usize] as u32);
-            match g {
-                Some(g) => groups.push(g),
-                None => ()
-            }
-        }
-
+    if res < 0 {
+        None
+    }
+    else {
+        let mut groups = buff.into_iter()
+                             .filter_map(|i| get_group_by_gid(i as gid_t))
+                             .collect::<Vec<_>>();
+        groups.dedup_by_key(|i| i.gid());
         Some(groups)
     }
 }
