@@ -1,5 +1,5 @@
 extern crate users;
-use users::{Users, Group, UsersCache, get_user_groups};
+use users::{Users, Group, UsersCache, get_user_groups, group_access_list};
 
 fn main() {
     let cache = UsersCache::new();
@@ -11,6 +11,15 @@ fn main() {
         .expect("No user groups?");
     
     groups.sort_by(|a, b| a.gid().cmp(&b.gid()));
+    for group in groups {
+        println!("Group {} has name {}", group.gid(), group.name().to_string_lossy());
+    }
+    
+    let mut groups = group_access_list()
+        .expect("Group access list");
+        
+    groups.sort_by(|a, b| a.gid().cmp(&b.gid()));
+    println!("\nGroup access list:");
     for group in groups {
         println!("Group {} has name {}", group.gid(), group.name().to_string_lossy());
     }

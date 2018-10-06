@@ -31,6 +31,7 @@
 
 use std::ffi::{CStr, CString, OsStr, OsString};
 use std::fmt;
+use std::io::{Result as IoResult, Error as IoError};
 use std::os::unix::ffi::OsStrExt;
 use std::ptr::read;
 use std::sync::Arc;
@@ -50,6 +51,7 @@ use libc::{
     setpwent,
     getpwent,
     endpwent,
+    getgroups,
     getgrouplist,
     c_int,
 };
@@ -333,6 +335,26 @@ pub fn get_effective_groupname() -> Option<OsString> {
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
 }
 
+/// Returns the group access list for the current process.
+pub fn group_access_list() -> IoResult<Vec<Group>> {
+    let mut buff: Vec<gid_t> = vec![0; 1024];
+    
+    let res = unsafe {
+        getgroups(1024, buff.as_mut_ptr())
+    };
+
+    if res < 0 {
+        Err(IoError::last_os_error())
+    }
+    else {
+        let mut groups = buff.into_iter()
+                                     .filter_map(|i| get_group_by_gid(i))
+                                     .collect::<Vec<_>>();
+        groups.dedup_by_key(|i| i.gid());
+        Ok(groups)
+    }
+}
+
 /// Returns groups for a provided user name and primary group id
 pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Option<Vec<Group>> {
     // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
@@ -359,11 +381,11 @@ pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Op
         None
     }
     else {
-        let mut groups = buff.into_iter()
-                             .filter_map(|i| get_group_by_gid(i as gid_t))
-                             .collect::<Vec<_>>();
-        groups.dedup_by_key(|i| i.gid());
-        Some(groups)
+        buff.dedup();
+        buff.into_iter()
+            .filter_map(|i| get_group_by_gid(i as gid_t))
+            .collect::<Vec<_>>()
+            .into()
     }
 }
 
