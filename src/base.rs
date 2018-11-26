@@ -48,13 +48,17 @@ use libc::{
     geteuid,
     getgid,
     getegid,
-    setpwent,
-    getpwent,
-    endpwent,
     getgroups,
     getgrouplist,
     c_int,
 };
+#[cfg(not(target_os = "android"))]
+use libc::{
+    setpwent,
+    getpwent,
+    endpwent
+};
+
 use libc::passwd as c_passwd;
 use libc::group as c_group;
 
@@ -415,12 +419,14 @@ struct AllUsers;
 /// block, then make sure to not make a new instance of it until
 /// iteration is over.
 pub unsafe fn all_users() -> impl Iterator<Item=User> {
+    #[cfg(not(target_os = "android"))]
     setpwent();
     AllUsers
 }
 
 impl Drop for AllUsers {
     fn drop(&mut self) {
+        #[cfg(not(target_os = "android"))]
         unsafe { endpwent() };
     }
 }
@@ -428,6 +434,11 @@ impl Drop for AllUsers {
 impl Iterator for AllUsers {
     type Item = User;
 
+    #[cfg(target_os = "android")]
+    fn next(&mut self) -> Option<User> {
+        None
+    }
+    #[cfg(not(target_os = "android"))]
     fn next(&mut self) -> Option<User> {
         unsafe { passwd_to_user(getpwent()) }
     }
@@ -457,7 +468,7 @@ pub mod os {
     /// Although the `passwd` struct is common among Unix systems, its actual
     /// format can vary. See the definitions in the `base` module to check which
     /// fields are actually present.
-    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd", target_os = "solaris"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd", target_os = "solaris"))]
     pub mod unix {
         use std::ffi::{OsStr, OsString};
         use std::path::{Path, PathBuf};
@@ -531,18 +542,25 @@ pub mod os {
             /// Extract the OS-specific fields from the C `passwd` struct that
             /// we just read.
             pub unsafe fn from_passwd(passwd: c_passwd) -> Self {
-                let home_dir = from_raw_buf(passwd.pw_dir).into();
-                let shell    = from_raw_buf(passwd.pw_shell).into();
-                let password = from_raw_buf(passwd.pw_passwd);
+                #[cfg(target_os = "android")]
+                {
+                    Default::default()
+                }
+                #[cfg(not(target_os = "android"))]
+                {
+                    let home_dir = from_raw_buf(passwd.pw_dir).into();
+                    let shell    = from_raw_buf(passwd.pw_shell).into();
+                    let password = from_raw_buf(passwd.pw_passwd);
 
-                UserExtras { home_dir, shell, password }
+                    UserExtras { home_dir, shell, password }
+                }
             }
         }
 
-        #[cfg(any(target_os = "linux", target_os = "solaris"))]
+        #[cfg(any(target_os = "linux", target_os = "android", target_os = "solaris"))]
         use super::super::User;
 
-        #[cfg(any(target_os = "linux", target_os = "solaris"))]
+        #[cfg(any(target_os = "linux", target_os = "android", target_os = "solaris"))]
         impl UserExt for User {
             fn home_dir(&self) -> &Path {
                 Path::new(&self.extras.home_dir)
@@ -703,11 +721,11 @@ pub mod os {
     pub type UserExtras = bsd::UserExtras;
 
     /// Any extra fields on a `User` specific to the current platform.
-    #[cfg(any(target_os = "linux", target_os = "solaris"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "solaris"))]
     pub type UserExtras = unix::UserExtras;
 
     /// Any extra fields on a `Group` specific to the current platform.
-    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd", target_os = "solaris"))]
+    #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd", target_os = "solaris"))]
     pub type GroupExtras = unix::GroupExtras;
 }
 
