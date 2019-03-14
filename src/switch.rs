@@ -1,7 +1,7 @@
 //! Functions for switching the running process’s user or group.
 
 use std::io::{Error as IOError, Result as IOResult};
-use libc::{uid_t, gid_t, c_int, setuid, seteuid, setgid};
+use libc::{uid_t, gid_t, c_int};
 
 use base::{get_effective_uid, get_effective_gid};
 
@@ -22,7 +22,7 @@ extern {
 /// Typically, trying to switch to anyone other than the user already running
 /// the process requires root privileges.
 pub fn set_current_uid(uid: uid_t) -> IOResult<()> {
-    match unsafe { setuid(uid) } {
+    match unsafe { libc::setuid(uid) } {
          0 => Ok(()),
         -1 => Err(IOError::last_os_error()),
          n => unreachable!("setuid returned {}", n)
@@ -35,7 +35,7 @@ pub fn set_current_uid(uid: uid_t) -> IOResult<()> {
 /// Typically, trying to switch to any group other than the group already
 /// running the process requires root privileges.
 pub fn set_current_gid(gid: gid_t) -> IOResult<()> {
-    match unsafe { setgid(gid) } {
+    match unsafe { libc::setgid(gid) } {
          0 => Ok(()),
         -1 => Err(IOError::last_os_error()),
          n => unreachable!("setgid returned {}", n)
@@ -48,7 +48,7 @@ pub fn set_current_gid(gid: gid_t) -> IOResult<()> {
 /// Typically, trying to switch to anyone other than the user already running
 /// the process requires root privileges.
 pub fn set_effective_uid(uid: uid_t) -> IOResult<()> {
-    match unsafe { seteuid(uid) } {
+    match unsafe { libc::seteuid(uid) } {
          0 => Ok(()),
         -1 => Err(IOError::last_os_error()),
          n => unreachable!("seteuid returned {}", n)

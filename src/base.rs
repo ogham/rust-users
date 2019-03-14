@@ -36,31 +36,10 @@ use std::os::unix::ffi::OsStrExt;
 use std::ptr::read;
 use std::sync::Arc;
 
-use libc::{
-    c_char,
-    uid_t,
-    gid_t,
-    getpwuid,
-    getpwnam,
-    getgrgid,
-    getgrnam,
-    getuid,
-    geteuid,
-    getgid,
-    getegid,
-    getgroups,
-    getgrouplist,
-    c_int,
-};
-#[cfg(not(target_os = "android"))]
-use libc::{
-    setpwent,
-    getpwent,
-    endpwent
-};
-
+use libc::{c_char, uid_t, gid_t, c_int};
 use libc::passwd as c_passwd;
 use libc::group as c_group;
+
 
 /// Information about a particular user.
 #[derive(Clone)]
@@ -247,7 +226,7 @@ unsafe fn members(groups: *mut *mut c_char) -> Vec<OsString> {
 /// Returns it if one is found, otherwise returns `None`.
 pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
     unsafe {
-        let passwd = getpwuid(uid);
+        let passwd = libc::getpwuid(uid);
         passwd_to_user(passwd)
     }
 }
@@ -257,7 +236,7 @@ pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
 pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> {
     if let Ok(username) = CString::new(username.as_ref().as_bytes()) {
         unsafe {
-            let passwd = getpwnam(username.as_ptr());
+            let passwd = libc::getpwnam(username.as_ptr());
             passwd_to_user(passwd)
         }
     }
@@ -273,7 +252,7 @@ pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> 
 /// Returns it if one is found, otherwise returns `None`.
 pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
     unsafe {
-        let group = getgrgid(gid);
+        let group = libc::getgrgid(gid);
         struct_to_group(group)
     }
 }
@@ -283,7 +262,7 @@ pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
 pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(group_name: &S) -> Option<Group> {
     if let Ok(group_name) = CString::new(group_name.as_ref().as_bytes()) {
         unsafe {
-            let group = getgrnam(group_name.as_ptr());
+            let group = libc::getgrnam(group_name.as_ptr());
             struct_to_group(group)
         }
     }
@@ -297,7 +276,7 @@ pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(group_name: &S) -> Option<Gro
 
 /// Returns the user ID for the user running the process.
 pub fn get_current_uid() -> uid_t {
-    unsafe { getuid() }
+    unsafe { libc::getuid() }
 }
 
 /// Returns the username of the user running the process.
@@ -308,7 +287,7 @@ pub fn get_current_username() -> Option<OsString> {
 
 /// Returns the user ID for the effective user running the process.
 pub fn get_effective_uid() -> uid_t {
-    unsafe { geteuid() }
+    unsafe { libc::geteuid() }
 }
 
 /// Returns the username of the effective user running the process.
@@ -319,7 +298,7 @@ pub fn get_effective_username() -> Option<OsString> {
 
 /// Returns the group ID for the user running the process.
 pub fn get_current_gid() -> gid_t {
-    unsafe { getgid() }
+    unsafe { libc::getgid() }
 }
 
 /// Returns the groupname of the user running the process.
@@ -330,7 +309,7 @@ pub fn get_current_groupname() -> Option<OsString> {
 
 /// Returns the group ID for the effective user running the process.
 pub fn get_effective_gid() -> gid_t {
-    unsafe { getegid() }
+    unsafe { libc::getegid() }
 }
 
 /// Returns the groupname of the effective user running the process.
@@ -344,7 +323,7 @@ pub fn group_access_list() -> IoResult<Vec<Group>> {
     let mut buff: Vec<gid_t> = vec![0; 1024];
 
     let res = unsafe {
-        getgroups(1024, buff.as_mut_ptr())
+        libc::getgroups(1024, buff.as_mut_ptr())
     };
 
     if res < 0 {
@@ -373,12 +352,12 @@ pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Op
     // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
     #[cfg(all(unix, target_os="macos"))]
     let res = unsafe {
-        getgrouplist(name.as_ptr(), gid as i32, buff.as_mut_ptr(), &mut count)
+        libc::getgrouplist(name.as_ptr(), gid as i32, buff.as_mut_ptr(), &mut count)
     };
 
     #[cfg(all(unix, not(target_os="macos")))]
     let res = unsafe {
-        getgrouplist(name.as_ptr(), gid, buff.as_mut_ptr(), &mut count)
+        libc::getgrouplist(name.as_ptr(), gid, buff.as_mut_ptr(), &mut count)
     };
 
     if res < 0 {
@@ -420,14 +399,14 @@ struct AllUsers;
 /// iteration is over.
 pub unsafe fn all_users() -> impl Iterator<Item=User> {
     #[cfg(not(target_os = "android"))]
-    setpwent();
+    libc::setpwent();
     AllUsers
 }
 
 impl Drop for AllUsers {
     fn drop(&mut self) {
         #[cfg(not(target_os = "android"))]
-        unsafe { endpwent() };
+        unsafe { libc::endpwent() };
     }
 }
 
@@ -440,7 +419,7 @@ impl Iterator for AllUsers {
     }
     #[cfg(not(target_os = "android"))]
     fn next(&mut self) -> Option<User> {
-        unsafe { passwd_to_user(getpwent()) }
+        unsafe { passwd_to_user(libc::getpwent()) }
     }
 }
 
