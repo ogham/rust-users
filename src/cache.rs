@@ -26,6 +26,7 @@
 //!
 //! ```norun
 //! let mut cache = UsersCache::empty_cache();
+//!
 //! let uid   = cache.get_current_uid();                     // OK...
 //! let user  = cache.get_user_by_uid(uid).unwrap()          // OK...
 //! let group = cache.get_group_by_gid(user.primary_group);  // No!
@@ -94,8 +95,8 @@ struct BiMap<K, V> {
 }
 
 
-// Default has to be impl'd manually here, because there's no
-// Default impl on User or Group, even though those types aren't
+// Default has to be impl’d manually here, because there’s no
+// Default impl on User or Group, even though those types aren’t
 // needed to produce a default instance of any HashMaps...
 
 impl Default for UsersCache {

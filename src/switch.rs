@@ -116,11 +116,11 @@ impl Drop for SwitchUserGuard {
 /// Typically, trying to switch to any user or group other than the ones already
 /// running the process requires root privileges.
 ///
-/// **Use with care!** Possible security issues can happen, as Rust doesn't
+/// **Use with care!** Possible security issues can happen, as Rust doesn’t
 /// guarantee running the destructor! If in doubt run `drop()` method on the
 /// guard value manually!
 ///
-/// ### Examples
+/// # Examples
 ///
 /// ```no_run
 /// use users::switch::switch_user_group;

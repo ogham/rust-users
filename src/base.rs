@@ -84,7 +84,7 @@ impl User {
     pub fn new<S: AsRef<OsStr> + ?Sized>(uid: uid_t, name: &S, primary_group: gid_t) -> Self {
         let name_arc = Arc::new(name.into());
         let extras = os::UserExtras::default();
-    
+
         User { uid, name_arc, primary_group, extras }
     }
 
@@ -147,7 +147,7 @@ impl Group {
     pub fn new<S: AsRef<OsStr> + ?Sized>(gid: gid_t, name: &S) -> Self {
         let name_arc = Arc::new(name.into());
         let extras = os::GroupExtras::default();
-    
+
         Group { gid, name_arc, extras }
     }
 
@@ -342,7 +342,7 @@ pub fn get_effective_groupname() -> Option<OsString> {
 /// Returns the group access list for the current process.
 pub fn group_access_list() -> IoResult<Vec<Group>> {
     let mut buff: Vec<gid_t> = vec![0; 1024];
-    
+
     let res = unsafe {
         getgroups(1024, buff.as_mut_ptr())
     };
@@ -375,7 +375,7 @@ pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Op
     let res = unsafe {
         getgrouplist(name.as_ptr(), gid as i32, buff.as_mut_ptr(), &mut count)
     };
-    
+
     #[cfg(all(unix, not(target_os="macos")))]
     let res = unsafe {
         getgrouplist(name.as_ptr(), gid, buff.as_mut_ptr(), &mut count)

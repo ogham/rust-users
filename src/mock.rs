@@ -16,7 +16,7 @@
 //! the current user. Aside from that, you can add users and groups with
 //! `add_user` and `add_group` to the object:
 //!
-//! ```rust
+//! ```
 //! use users::mock::{MockUsers, User, Group};
 //! use users::os::unix::{UserExt, GroupExt};
 //! use std::sync::Arc;
@@ -36,9 +36,9 @@
 //! functions and structs accept a generic parameter that implements the `Users`
 //! trait. Then, you can pass in a value of either Cache or Mock type.
 //!
-//! Here's a complete example:
+//! Here’s a complete example:
 //!
-//! ```rust
+//! ```
 //! use users::{Users, UsersCache, User};
 //! use users::os::unix::UserExt;
 //! use users::mock::MockUsers;
