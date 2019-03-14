@@ -9,8 +9,6 @@ use base::{get_effective_uid, get_effective_gid};
 // NOTE: for whatever reason, it seems these are not available in libc on BSD platforms, so they
 //       need to be included manually
 extern {
-    fn setegid(gid: gid_t) -> c_int;
-
     fn setreuid(ruid: uid_t, euid: uid_t) -> c_int;
     fn setregid(rgid: gid_t, egid: gid_t) -> c_int;
 }
@@ -61,7 +59,7 @@ pub fn set_effective_uid(uid: uid_t) -> IOResult<()> {
 /// Typically, trying to switch to any group other than the group already
 /// running the process requires root privileges.
 pub fn set_effective_gid(gid: gid_t) -> IOResult<()> {
-    match unsafe { setegid(gid) } {
+    match unsafe { libc::setegid(gid) } {
          0 => Ok(()),
         -1 => Err(IOError::last_os_error()),
          n => unreachable!("setegid returned {}", n)

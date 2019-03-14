@@ -15,4 +15,4 @@ cache = []
 mock = []
 
 [dependencies]
-libc = "0.2"
+libc = "0.2.50"
