@@ -31,9 +31,10 @@
 
 use std::ffi::{CStr, CString, OsStr, OsString};
 use std::fmt;
+use std::mem;
 use std::io::{Result as IoResult, Error as IoError};
 use std::os::unix::ffi::OsStrExt;
-use std::ptr::read;
+use std::ptr;
 use std::sync::Arc;
 
 use libc::{c_char, uid_t, gid_t, c_int};
@@ -244,7 +245,7 @@ unsafe fn from_raw_buf(p: *const c_char) -> OsString {
 }
 
 unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
-    if let Some(passwd) = pointer.as_ref().map(|p| read(p)) {
+    if let Some(passwd) = pointer.as_ref().map(|p| ptr::read(p)) {
         let name = Arc::new(from_raw_buf(passwd.pw_name));
 
         Some(User {
@@ -260,7 +261,7 @@ unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
 }
 
 unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
-    if let Some(group) = pointer.as_ref().map(|p| read(p)) {
+    if let Some(group) = pointer.as_ref().map(|p| ptr::read(p)) {
         let name = Arc::new(from_raw_buf(group.gr_name));
 
         Some(Group {
@@ -328,7 +329,7 @@ pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
 ///
 /// # libc functions used
 ///
-/// - [`getpwnam`](https://docs.rs/libc/*/libc/fn.getpwnam.html)
+/// - [`getpwnam_r`](https://docs.rs/libc/*/libc/fn.getpwnam_r.html)
 ///
 /// # Examples
 ///
@@ -341,18 +342,35 @@ pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
 /// }
 /// ```
 pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> {
-    if let Ok(username) = CString::new(username.as_ref().as_bytes()) {
-        unsafe {
-            let passwd = libc::getpwnam(username.as_ptr());
-            passwd_to_user(passwd)
+    let username = match CString::new(username.as_ref().as_bytes()) {
+        Ok(u)  => u,
+        Err(_) => {
+            // The username that was passed in contained a null character,
+            // which will match no usernames.
+            return None;
         }
+    };
+
+    let mut passwd = unsafe { mem::zeroed::<c_passwd>() };
+    let mut buf = vec![0; 2048];  // TODO: Retry with larger buffer sizes
+    let mut result = ptr::null_mut::<c_passwd>();
+
+    unsafe {
+        libc::getpwnam_r(username.as_ptr(), &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result);
     }
-    else {
-        // The username that was passed in contained a null character.
-        // This will *never* find anything, so just return `None`.
-        // (I can’t figure out a pleasant way to signal an error here)
-        None
+
+    if result.is_null() {
+        // There is no such user, or an error has occurred.
+        // errno gets set if there’s an error.
+        return None;
     }
+
+    if result != &mut passwd {
+        // The result of getpwnam_r should be its input passwd.
+        return None;
+    }
+
+    unsafe { passwd_to_user(result) }
 }
 
 /// Searches for a `Group` with the given ID in the system’s group database.
