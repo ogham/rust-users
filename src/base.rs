@@ -49,10 +49,7 @@ pub struct User {
     uid: uid_t,
     primary_group: gid_t,
     extras: os::UserExtras,
-
-    /// This user’s name, as an owned `OsString` possibly shared with a cache.
-    /// Prefer using the `name()` accessor to using this field, if possible.
-    pub name_arc: Arc<OsString>,
+    pub(crate) name_arc: Arc<OsString>,
 }
 
 impl User {
@@ -166,10 +163,7 @@ impl fmt::Debug for User {
 pub struct Group {
     gid: gid_t,
     extras: os::GroupExtras,
-
-    /// This group’s name, as an owned `OsString` possibly shared with a cache.
-    /// Prefer using the `name()` accessor to using this field, if possible.
-    pub name_arc: Arc<OsString>,
+    pub(crate) name_arc: Arc<OsString>,
 }
 
 impl Group {
