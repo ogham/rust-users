@@ -1,8 +1,28 @@
 //! A cache for users and groups provided by the OS.
 //!
+//! Because the users table changes so infrequently, it's common for
+//! short-running programs to cache the results instead of getting the most
+//! up-to-date entries every time. The [`UsersCache`](struct.UsersCache.html)
+//! type helps with this, providing methods that have the same name as the
+//! others in this crate, only they store the results.
+//!
+//! ## Example
+//!
+//! ```no_run
+//! use users::{Users, UsersCache};
+//! use std::sync::Arc;
+//!
+//! let mut cache = UsersCache::new();
+//! let user      = cache.get_user_by_uid(502).expect("User not found");
+//! let same_user = cache.get_user_by_uid(502).unwrap();
+//!
+//! // The two returned values point to the same User
+//! assert!(Arc::ptr_eq(&user, &same_user));
+//! ```
+//!
 //! ## Caching, multiple threads, and mutability
 //!
-//! The [`UsersCache`] type is caught between a rock and a hard place when it
+//! The `UsersCache` type is caught between a rock and a hard place when it
 //! comes to providing references to users and groups.
 //!
 //! Instead of returning a fresh `User` struct each time, for example, it will
@@ -74,6 +94,8 @@ use traits::{Users, Groups};
 
 
 /// A producer of user and group instances that caches every result.
+///
+/// For more information, see the [`users::cache` module documentation](index.html).
 pub struct UsersCache {
     users:  BiMap<uid_t, User>,
     groups: BiMap<gid_t, Group>,
@@ -98,7 +120,6 @@ struct BiMap<K, V> {
 // Default has to be impl’d manually here, because there’s no
 // Default impl on User or Group, even though those types aren’t
 // needed to produce a default instance of any HashMaps...
-
 impl Default for UsersCache {
     fn default() -> Self {
         UsersCache {
@@ -124,6 +145,14 @@ impl Default for UsersCache {
 impl UsersCache {
 
     /// Creates a new empty cache.
+    ///
+    /// ### Examples
+    ///
+    /// ```
+    /// use users::cache::UsersCache;
+    ///
+    /// let cache = UsersCache::new();
+    /// ```
     pub fn new() -> Self {
         UsersCache::default()
     }
@@ -132,6 +161,15 @@ impl UsersCache {
     ///
     /// This is `unsafe` because we cannot prevent data races if two caches
     /// were attempted to be initialised on different threads at the same time.
+    /// For more information, see the [`all_users` documentation](../fn.all_users.html).
+    ///
+    /// ### Examples
+    ///
+    /// ```
+    /// use users::cache::UsersCache;
+    ///
+    /// let cache = unsafe { UsersCache::with_all_users() };
+    /// ```
     pub unsafe fn with_all_users() -> Self {
         let cache = UsersCache::new();
 
