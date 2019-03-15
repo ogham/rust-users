@@ -23,6 +23,15 @@ extern {
 /// # libc functions used
 ///
 /// - [`setuid`](https://docs.rs/libc/*/libc/fn.setuid.html)
+///
+/// # Examples
+///
+/// ```no_run
+/// use users::switch::set_current_uid;
+///
+/// set_current_uid(1001);
+/// // current user ID is 1001
+/// ```
 pub fn set_current_uid(uid: uid_t) -> IOResult<()> {
     match unsafe { libc::setuid(uid) } {
          0 => Ok(()),
@@ -40,6 +49,15 @@ pub fn set_current_uid(uid: uid_t) -> IOResult<()> {
 /// # libc functions used
 ///
 /// - [`setgid`](https://docs.rs/libc/*/libc/fn.setgid.html)
+///
+/// # Examples
+///
+/// ```no_run
+/// use users::switch::set_current_gid;
+///
+/// set_current_gid(1001);
+/// // current group ID is 1001
+/// ```
 pub fn set_current_gid(gid: gid_t) -> IOResult<()> {
     match unsafe { libc::setgid(gid) } {
          0 => Ok(()),
@@ -57,6 +75,15 @@ pub fn set_current_gid(gid: gid_t) -> IOResult<()> {
 /// # libc functions used
 ///
 /// - [`seteuid`](https://docs.rs/libc/*/libc/fn.seteuid.html)
+///
+/// # Examples
+///
+/// ```no_run
+/// use users::switch::set_effective_uid;
+///
+/// set_effective_uid(1001);
+/// // current effective user ID is 1001
+/// ```
 pub fn set_effective_uid(uid: uid_t) -> IOResult<()> {
     match unsafe { libc::seteuid(uid) } {
          0 => Ok(()),
@@ -74,6 +101,15 @@ pub fn set_effective_uid(uid: uid_t) -> IOResult<()> {
 /// # libc functions used
 ///
 /// - [`setegid`](https://docs.rs/libc/*/libc/fn.setegid.html)
+///
+/// # Examples
+///
+/// ```no_run
+/// use users::switch::set_effective_gid;
+///
+/// set_effective_gid(1001);
+/// // current effective group ID is 1001
+/// ```
 pub fn set_effective_gid(gid: gid_t) -> IOResult<()> {
     match unsafe { libc::setegid(gid) } {
          0 => Ok(()),
@@ -91,6 +127,15 @@ pub fn set_effective_gid(gid: gid_t) -> IOResult<()> {
 /// # libc functions used
 ///
 /// - `setreuid`
+///
+/// # Examples
+///
+/// ```no_run
+/// use users::switch::set_both_uid;
+///
+/// set_both_uid(1001, 1001);
+/// // current user ID and effective user ID are 1001
+/// ```
 pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> IOResult<()> {
     match unsafe { setreuid(ruid, euid) } {
          0 => Ok(()),
@@ -109,6 +154,15 @@ pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> IOResult<()> {
 /// # libc functions used
 ///
 /// - `setregid`
+///
+/// # Examples
+///
+/// ```no_run
+/// use users::switch::set_both_gid;
+///
+/// set_both_gid(1001, 1001);
+/// // current user ID and effective group ID are 1001
+/// ```
 pub fn set_both_gid(rgid: gid_t, egid: gid_t) -> IOResult<()> {
     match unsafe { setregid(rgid, egid) } {
          0 => Ok(()),
@@ -149,7 +203,7 @@ impl Drop for SwitchUserGuard {
 ///
 /// {
 ///     let _guard = switch_user_group(1001, 1001);
-///     // current and effective user and group ids are 1001
+///     // current and effective user and group IDs are 1001
 /// }
 /// // back to the old values
 /// ```

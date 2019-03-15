@@ -42,6 +42,8 @@ use libc::group as c_group;
 
 
 /// Information about a particular user.
+///
+/// For more information, see the [module documentation](index.html).
 #[derive(Clone)]
 pub struct User {
     uid: uid_t,
@@ -58,8 +60,16 @@ impl User {
     /// Create a new `User` with the given user ID, name, and primary
     /// group ID, with the rest of the fields filled with dummy values.
     ///
-    /// This method does not actually create a new user on the system—it
+    /// This method does not actually create a new user on the system — it
     /// should only be used for comparing users in tests.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use users::User;
+    ///
+    /// let user = User::new(501, "stevedore", 100);
+    /// ```
     pub fn new<S: AsRef<OsStr> + ?Sized>(uid: uid_t, name: &S, primary_group: gid_t) -> Self {
         let name_arc = Arc::new(name.into());
         let extras = os::UserExtras::default();
@@ -68,25 +78,65 @@ impl User {
     }
 
     /// Returns this user’s ID.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use users::User;
+    ///
+    /// let user = User::new(501, "stevedore", 100);
+    /// assert_eq!(user.uid(), 501);
+    /// ```
     pub fn uid(&self) -> uid_t {
         self.uid
     }
 
     /// Returns this user’s name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::ffi::OsStr;
+    /// use users::User;
+    ///
+    /// let user = User::new(501, "stevedore", 100);
+    /// assert_eq!(user.name(), OsStr::new("stevedore"));
+    /// ```
     pub fn name(&self) -> &OsStr {
         &**self.name_arc
     }
 
     /// Returns the ID of this user’s primary group.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use users::User;
+    ///
+    /// let user = User::new(501, "stevedore", 100);
+    /// assert_eq!(user.primary_group_id(), 100);
+    /// ```
     pub fn primary_group_id(&self) -> gid_t {
         self.primary_group
     }
 
-    /// Returns a list of groups this user is a member of.
+    /// Returns a list of groups this user is a member of. This involves
+    /// loading the groups list, as it is _not_ contained within this type.
     ///
     /// # libc functions used
     ///
     /// - [`getgrouplist`](https://docs.rs/libc/*/libc/fn.getgrouplist.html)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use users::User;
+    ///
+    /// let user = User::new(501, "stevedore", 100);
+    /// for group in user.groups().expect("User not found") {
+    ///     println!("User is in group: {:?}", group.name());
+    /// }
+    /// ```
     pub fn groups(&self) -> Option<Vec<Group>> {
         get_user_groups(self.name(), self.primary_group_id())
     }
@@ -110,6 +160,8 @@ impl fmt::Debug for User {
 
 
 /// Information about a particular group.
+///
+/// For more information, see the [module documentation](index.html).
 #[derive(Clone)]
 pub struct Group {
     gid: gid_t,
@@ -125,8 +177,16 @@ impl Group {
     /// Create a new `Group` with the given group ID and name, with the
     /// rest of the fields filled in with dummy values.
     ///
-    /// This method does not actually create a new group on the system—it
+    /// This method does not actually create a new group on the system — it
     /// should only be used for comparing groups in tests.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use users::Group;
+    ///
+    /// let group = Group::new(102, "database");
+    /// ```
     pub fn new<S: AsRef<OsStr> + ?Sized>(gid: gid_t, name: &S) -> Self {
         let name_arc = Arc::new(name.into());
         let extras = os::GroupExtras::default();
@@ -135,11 +195,30 @@ impl Group {
     }
 
     /// Returns this group’s ID.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use users::Group;
+    ///
+    /// let group = Group::new(102, "database");
+    /// assert_eq!(group.gid(), 102);
+    /// ```
     pub fn gid(&self) -> gid_t {
         self.gid
     }
 
     /// Returns this group’s name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::ffi::OsStr;
+    /// use users::Group;
+    ///
+    /// let group = Group::new(102, "database");
+    /// assert_eq!(group.name(), OsStr::new("database"));
+    /// ```
     pub fn name(&self) -> &OsStr {
         &**self.name_arc
     }
@@ -232,6 +311,17 @@ unsafe fn members(groups: *mut *mut c_char) -> Vec<OsString> {
 /// # libc functions used
 ///
 /// - [`getpwuid`](https://docs.rs/libc/*/libc/fn.getpwuid.html)
+///
+/// # Examples
+///
+/// ```
+/// use users::get_user_by_uid;
+///
+/// match get_user_by_uid(501) {
+///     Some(user) => println!("Found user {:?}", user.name()),
+///     None       => println!("User not found"),
+/// }
+/// ```
 pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
     unsafe {
         let passwd = libc::getpwuid(uid);
@@ -245,6 +335,17 @@ pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
 /// # libc functions used
 ///
 /// - [`getpwnam`](https://docs.rs/libc/*/libc/fn.getpwnam.html)
+///
+/// # Examples
+///
+/// ```
+/// use users::get_user_by_name;
+///
+/// match get_user_by_name("stevedore") {
+///     Some(user) => println!("Found user #{}", user.uid()),
+///     None       => println!("User not found"),
+/// }
+/// ```
 pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> {
     if let Ok(username) = CString::new(username.as_ref().as_bytes()) {
         unsafe {
@@ -266,6 +367,17 @@ pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> 
 /// # libc functions used
 ///
 /// - [`getgrgid`](https://docs.rs/libc/*/libc/fn.getgrgid.html)
+///
+/// # Examples
+///
+/// ```
+/// use users::get_group_by_gid;
+///
+/// match get_group_by_gid(102) {
+///     Some(group) => println!("Found group {:?}", group.name()),
+///     None        => println!("Group not found"),
+/// }
+/// ```
 pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
     unsafe {
         let group = libc::getgrgid(gid);
@@ -279,6 +391,17 @@ pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
 /// # libc functions used
 ///
 /// - [`getgrnam`](https://docs.rs/libc/*/libc/fn.getgrnam.html)
+///
+/// # Examples
+///
+/// ```
+/// use users::get_group_by_name;
+///
+/// match get_group_by_name("db-access") {
+///     Some(group) => println!("Found group #{}", group.gid()),
+///     None        => println!("Group not found"),
+/// }
+/// ```
 pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(group_name: &S) -> Option<Group> {
     if let Ok(group_name) = CString::new(group_name.as_ref().as_bytes()) {
         unsafe {
@@ -299,16 +422,38 @@ pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(group_name: &S) -> Option<Gro
 /// # libc functions used
 ///
 /// - [`getuid`](https://docs.rs/libc/*/libc/fn.getuid.html)
+///
+/// # Examples
+///
+/// ```
+/// use users::get_current_uid;
+///
+/// println!("The ID of the current user is {}", get_current_uid());
+/// ```
 pub fn get_current_uid() -> uid_t {
     unsafe { libc::getuid() }
 }
 
 /// Returns the username of the user running the process.
 ///
+/// This function to return `None` if the current user does not exist, which
+/// could happed if they were deleted after the program started running.
+///
 /// # libc functions used
 ///
 /// - [`getuid`](https://docs.rs/libc/*/libc/fn.getuid.html)
 /// - [`getpwuid`](https://docs.rs/libc/*/libc/fn.getpwuid.html)
+///
+/// # Examples
+///
+/// ```
+/// use users::get_current_username;
+///
+/// match get_current_username() {
+///     Some(uname) => println!("Running as user with name {:?}", uname),
+///     None        => println!("The current user does not exist!"),
+/// }
+/// ```
 pub fn get_current_username() -> Option<OsString> {
     let uid = get_current_uid();
     get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name_arc).unwrap())
@@ -319,6 +464,14 @@ pub fn get_current_username() -> Option<OsString> {
 /// # libc functions used
 ///
 /// - [`geteuid`](https://docs.rs/libc/*/libc/fn.geteuid.html)
+///
+/// # Examples
+///
+/// ```
+/// use users::get_effective_uid;
+///
+/// println!("The ID of the effective user is {}", get_effective_uid());
+/// ```
 pub fn get_effective_uid() -> uid_t {
     unsafe { libc::geteuid() }
 }
@@ -329,6 +482,17 @@ pub fn get_effective_uid() -> uid_t {
 ///
 /// - [`geteuid`](https://docs.rs/libc/*/libc/fn.geteuid.html)
 /// - [`getpwuid`](https://docs.rs/libc/*/libc/fn.getpwuid.html)
+///
+/// # Examples
+///
+/// ```
+/// use users::get_effective_username;
+///
+/// match get_effective_username() {
+///     Some(uname) => println!("Running as effective user with name {:?}", uname),
+///     None        => println!("The effective user does not exist!"),
+/// }
+/// ```
 pub fn get_effective_username() -> Option<OsString> {
     let uid = get_effective_uid();
     get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name_arc).unwrap())
@@ -339,6 +503,14 @@ pub fn get_effective_username() -> Option<OsString> {
 /// # libc functions used
 ///
 /// - [`getgid`](https://docs.rs/libc/*/libc/fn.getgid.html)
+///
+/// # Examples
+///
+/// ```
+/// use users::get_current_gid;
+///
+/// println!("The ID of the current group is {}", get_current_gid());
+/// ```
 pub fn get_current_gid() -> gid_t {
     unsafe { libc::getgid() }
 }
@@ -349,6 +521,17 @@ pub fn get_current_gid() -> gid_t {
 ///
 /// - [`getgid`](https://docs.rs/libc/*/libc/fn.getgid.html)
 /// - [`getgrgid`](https://docs.rs/libc/*/libc/fn.getgrgid.html)
+///
+/// # Examples
+///
+/// ```
+/// use users::get_current_groupname;
+///
+/// match get_current_groupname() {
+///     Some(gname) => println!("Running as group with name {:?}", gname),
+///     None        => println!("The current group does not exist!"),
+/// }
+/// ```
 pub fn get_current_groupname() -> Option<OsString> {
     let gid = get_current_gid();
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
@@ -359,6 +542,14 @@ pub fn get_current_groupname() -> Option<OsString> {
 /// # libc functions used
 ///
 /// - [`getegid`](https://docs.rs/libc/*/libc/fn.getegid.html)
+///
+/// # Examples
+///
+/// ```
+/// use users::get_effective_gid;
+///
+/// println!("The ID of the effective group is {}", get_effective_gid());
+/// ```
 pub fn get_effective_gid() -> gid_t {
     unsafe { libc::getegid() }
 }
@@ -369,6 +560,17 @@ pub fn get_effective_gid() -> gid_t {
 ///
 /// - [`getegid`](https://docs.rs/libc/*/libc/fn.getegid.html)
 /// - [`getgrgid`](https://docs.rs/libc/*/libc/fn.getgrgid.html)
+///
+/// # Examples
+///
+/// ```
+/// use users::get_effective_groupname;
+///
+/// match get_effective_groupname() {
+///     Some(gname) => println!("Running as effective group with name {:?}", gname),
+///     None        => println!("The effective group does not exist!"),
+/// }
+/// ```
 pub fn get_effective_groupname() -> Option<OsString> {
     let gid = get_effective_gid();
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
@@ -379,6 +581,16 @@ pub fn get_effective_groupname() -> Option<OsString> {
 /// # libc functions used
 ///
 /// - [`getgroups`](https://docs.rs/libc/*/libc/fn.getgroups.html)
+///
+/// # Examples
+///
+/// ```no_run
+/// use users::group_access_list;
+///
+/// for group in group_access_list().expect("Error looking up groups") {
+///     println!("Process can access group #{} ({:?})", group.gid(), group.name());
+/// }
+/// ```
 pub fn group_access_list() -> IoResult<Vec<Group>> {
     let mut buff: Vec<gid_t> = vec![0; 1024];
 
@@ -403,6 +615,16 @@ pub fn group_access_list() -> IoResult<Vec<Group>> {
 /// # libc functions used
 ///
 /// - [`getgrouplist`](https://docs.rs/libc/*/libc/fn.getgrouplist.html)
+///
+/// # Examples
+///
+/// ```no_run
+/// use users::get_user_groups;
+///
+/// for group in get_user_groups("stevedore", 1001).expect("Error looking up groups") {
+///     println!("User is a member of group #{} ({:?})", group.gid(), group.name());
+/// }
+/// ```
 pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Option<Vec<Group>> {
     // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
     #[cfg(all(unix, target_os="macos"))]
@@ -467,6 +689,17 @@ struct AllUsers;
 /// So to iterate all users, construct the iterator inside an `unsafe`
 /// block, then make sure to not make a new instance of it until
 /// iteration is over.
+///
+/// # Examples
+///
+/// ```
+/// use users::all_users;
+///
+/// let iter = unsafe { all_users() };
+/// for user in iter {
+///     println!("User #{} ({:?})", user.uid(), user.name());
+/// }
+/// ```
 pub unsafe fn all_users() -> impl Iterator<Item=User> {
     #[cfg(not(target_os = "android"))]
     libc::setpwent();
