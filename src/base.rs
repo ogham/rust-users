@@ -305,7 +305,7 @@ unsafe fn members(groups: *mut *mut c_char) -> Vec<OsString> {
 ///
 /// # libc functions used
 ///
-/// - [`getpwuid`](https://docs.rs/libc/*/libc/fn.getpwuid.html)
+/// - [`getpwuid_r`](https://docs.rs/libc/*/libc/fn.getpwuid_r.html)
 ///
 /// # Examples
 ///
@@ -318,10 +318,26 @@ unsafe fn members(groups: *mut *mut c_char) -> Vec<OsString> {
 /// }
 /// ```
 pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
+    let mut passwd = unsafe { mem::zeroed::<c_passwd>() };
+    let mut buf = vec![0; 2048];  // TODO: Retry with larger buffer sizes
+    let mut result = ptr::null_mut::<c_passwd>();
+
     unsafe {
-        let passwd = libc::getpwuid(uid);
-        passwd_to_user(passwd)
+        libc::getpwuid_r(uid, &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result);
     }
+
+    if result.is_null() {
+        // There is no such user, or an error has occurred.
+        // errno gets set if there’s an error.
+        return None;
+    }
+
+    if result != &mut passwd {
+        // The result of getpwuid_r should be its input passwd.
+        return None;
+    }
+
+    unsafe { passwd_to_user(result) }
 }
 
 /// Searches for a `User` with the given username in the system’s user database.
@@ -454,7 +470,7 @@ pub fn get_current_uid() -> uid_t {
 /// # libc functions used
 ///
 /// - [`getuid`](https://docs.rs/libc/*/libc/fn.getuid.html)
-/// - [`getpwuid`](https://docs.rs/libc/*/libc/fn.getpwuid.html)
+/// - [`getpwuid_r`](https://docs.rs/libc/*/libc/fn.getpwuid_r.html)
 ///
 /// # Examples
 ///
@@ -493,7 +509,7 @@ pub fn get_effective_uid() -> uid_t {
 /// # libc functions used
 ///
 /// - [`geteuid`](https://docs.rs/libc/*/libc/fn.geteuid.html)
-/// - [`getpwuid`](https://docs.rs/libc/*/libc/fn.getpwuid.html)
+/// - [`getpwuid_r`](https://docs.rs/libc/*/libc/fn.getpwuid_r.html)
 ///
 /// # Examples
 ///
