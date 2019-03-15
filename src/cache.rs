@@ -2,8 +2,8 @@
 //!
 //! ## Caching, multiple threads, and mutability
 //!
-//! The `UsersCache` type is caught between a rock and a hard place when it comes
-//! to providing references to users and groups.
+//! The [`UsersCache`] type is caught between a rock and a hard place when it
+//! comes to providing references to users and groups.
 //!
 //! Instead of returning a fresh `User` struct each time, for example, it will
 //! return a reference to the version it currently has in its cache. So you can

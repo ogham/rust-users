@@ -1,6 +1,6 @@
 # rust-users [![users on crates.io](http://meritbadge.herokuapp.com/users)](https://crates.io/crates/users) [![Build status](https://travis-ci.org/ogham/rust-users.svg?branch=master)](https://travis-ci.org/ogham/rust-users)
 
-This is a library for getting information on Unix users and groups. It supports getting the system users, and creating your own mock tables.
+This is a library for getting information on Unix users and groups. It supports getting the system users and groups, storing them in a cache, and creating your own mock tables.
 
 ### [View the Rustdoc](https://docs.rs/users)
 
@@ -20,18 +20,18 @@ users = "0.8"
 In Unix, each user has an individual *user ID*, and each process has an *effective user ID* that says which user’s permissions it is using.
 Furthermore, users can be the members of *groups*, which also have names and IDs.
 This functionality is exposed in libc, the C standard library, but as an unsafe Rust interface.
-This wrapper library provides a safe interface, using User and Group objects instead of low-level pointers and strings.
+This wrapper library provides a safe interface, using `User` and `Group` types and functions such as `get_user_by_id` instead of low-level pointers and strings.
 It also offers basic caching functionality.
 
-It does not (yet) offer *editing* functionality; the objects returned are read-only.
+It does not (yet) offer *editing* functionality; the values returned are read-only.
 
 
 ## Users
 
-The function `get_current_uid` returns a `uid_t` value representing the user currently running the program, and the `get_user_by_uid` function scans the users database and returns a User object with the user’s information.
+The function `get_current_uid` returns a `uid_t` value representing the user currently running the program, and the `get_user_by_uid` function scans the users database and returns a `User` with the user’s information.
 This function returns `None` when there is no user for that ID.
 
-A `User` object has the following accessors:
+A `User` has the following accessors:
 
 - **uid:** The user’s ID
 - **name:** The user’s name
@@ -48,7 +48,7 @@ println!("Hello, {}!", user.name());
 
 This code assumes (with `unwrap()`) that the user hasn’t been deleted after the program has started running.
 For arbitrary user IDs, this is **not** a safe assumption: it’s possible to delete a user while it’s running a program, or is the owner of files, or for that user to have never existed.
-So always check the return values from `user_to_uid`!
+So always check the return values!
 
 There is also a `get_current_username` function, as it’s such a common operation that it deserves special treatment.
 
@@ -60,7 +60,7 @@ While a short program may only need to get user information once, a long-running
 
 For this reason, this crate offers a caching interface to the database, which offers the same functionality while holding on to every result, caching the information so it can be re-used.
 
-To introduce a cache, create a new `OSUsers` object and call the same methods on it.
+To introduce a cache, create a new `UsersCache` and call the same methods on it.
 For example:
 
 ```rust
@@ -73,13 +73,13 @@ println!("Hello again, {}!", user.name());
 ```
 
 This cache is **only additive**: it’s not possible to drop it, or erase selected entries, as when the database may have been modified, it’s best to start entirely afresh.
-So to accomplish this, just start using a new `OSUsers` object.
+So to accomplish this, just start using a new `UsersCache`.
 
 
 ## Groups
 
 Finally, it’s possible to get groups in a similar manner.
-A `Group` object has the following accessors:
+A `Group` has the following accessors:
 
 - **gid:** The group’s ID
 - **name:** The group’s name
@@ -111,8 +111,8 @@ This sub-library allows you to create these custom users and groups definitions,
 
 ## Creating mock users
 
-The only thing a mock users object needs to know in advance is the UID of the current user.
-Aside from that, you can add users and groups with `add_user` and `add_group` to the object:
+The only thing a mock users table needs to know in advance is the UID of the current user.
+Aside from that, you can add users and groups with `add_user` and `add_group` to the table:
 
 ```rust
 use users::mock::{MockUsers, User, Group};
@@ -130,8 +130,8 @@ The exports get re-exported into the mock module, for simpler `use` lines.
 
 ## Using mock users
 
-To set your program up to use either type of Users object, make your functions and structs accept a generic parameter that implements the `Users` trait.
-Then, you can pass in an object of either OS or Mock type.
+To set your program up to use either type of `Users` table, make your functions and structs accept a generic parameter that implements the `Users` trait.
+Then, you can pass in a value of either OS or Mock type.
 
 Here’s a complete example:
 

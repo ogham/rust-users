@@ -15,7 +15,7 @@
 //! can instead just be assumed to not exist:
 //!
 //! - If you try to search for a user with a null character in their name,
-//!   such a user could not exist anyway—so it’s OK to return `None`.
+//!   such a user could not exist anyway — so it’s OK to return `None`.
 //! - If the OS returns user information with a null character in a field,
 //!   then that field will just be truncated instead, which is valid behaviour
 //!   for a `CString`.

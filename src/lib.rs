@@ -17,21 +17,25 @@
 //! Furthermore, users can be the members of *groups*, which also have names and
 //! IDs. This functionality is exposed in libc, the C standard library, but as
 //! an unsafe Rust interface. This wrapper library provides a safe interface,
-//! using User and Group objects instead of low-level pointers and strings. It
-//! also offers basic caching functionality.
+//! using [`User`](struct.user.html) and [`Group`](struct.group.html) types
+//! and functions such as [`get_user_by_uid`](fn.get_user_by_uid.html) instead
+//! of low-level pointers and strings. It also offers basic caching
+//! functionality.
 //!
-//! It does not (yet) offer *editing* functionality; the objects returned are
+//! It does not (yet) offer *editing* functionality; the values returned are
 //! read-only.
 //!
 //!
 //! ## Users
 //!
-//! The function `get_current_uid` returns a `uid_t` value representing the user
-//! currently running the program, and the `get_user_by_uid` function scans the
-//! users database and returns a User object with the user’s information. This
-//! function returns `None` when there is no user for that ID.
+//! The function [`get_current_uid`](fn.get_current_uid.html) returns a
+//! `uid_t` value representing the user currently running the program, and the
+//! [`get_user_by_uid`](fn.get_user_by_uid.html) function scans the users
+//! database and returns a `User` with the user’s information. This function
+//! returns `None` when there is no user for that ID. The `uid_t` type is
+//! re-exported from the libc crate.
 //!
-//! A `User` object has the following accessors:
+//! A [`User`](struct.User.html) value has the following accessors:
 //!
 //! - **uid:** The user’s ID
 //! - **name:** The user’s name
@@ -50,10 +54,11 @@
 //! the program has started running. For arbitrary user IDs, this is **not** a
 //! safe assumption: it’s possible to delete a user while it’s running a
 //! program, or is the owner of files, or for that user to have never existed.
-//! So always check the return values from `user_to_uid`!
+//! So always check the return values!
 //!
-//! There is also a `get_current_username` function, as it’s such a common
-//! operation that it deserves special treatment.
+//! There is also a [`get_current_username`](fn.get_current_username.html)
+//! function, as it’s such a common operation that it deserves special
+//! treatment.
 //!
 //!
 //! ## Caching
@@ -68,8 +73,9 @@
 //! which offers the same functionality while holding on to every result,
 //! caching the information so it can be re-used.
 //!
-//! To introduce a cache, create a new `UsersCache` and call the same
-//! methods on it. For example:
+//! To introduce a cache, create a new
+//! [`UsersCache`](cache/struct.UsersCache.html). It has functions with the
+//! same names as the ones from earlier. For example:
 //!
 //! ```
 //! use users::{Users, Groups, UsersCache};
@@ -89,7 +95,7 @@
 //! ## Groups
 //!
 //! Finally, it’s possible to get groups in a similar manner.
-//! A `Group` has the following accessors:
+//! A [`Group`](struct.Group.html) has the following accessors:
 //!
 //! - **gid:** The group’s ID
 //! - **name:** The group’s name

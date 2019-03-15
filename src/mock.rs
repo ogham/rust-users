@@ -12,9 +12,9 @@
 //!
 //! ## Creating Mock Users
 //!
-//! The only thing a mock users object needs to know in advance is the UID of
+//! The only thing a mock users table needs to know in advance is the UID of
 //! the current user. Aside from that, you can add users and groups with
-//! `add_user` and `add_group` to the object:
+//! `add_user` and `add_group` to the table:
 //!
 //! ```
 //! use users::mock::{MockUsers, User, Group};
@@ -32,7 +32,7 @@
 //!
 //! ## Using Mock Users
 //!
-//! To set your program up to use either type of Users object, make your
+//! To set your program up to use either type of `Users` table, make your
 //! functions and structs accept a generic parameter that implements the `Users`
 //! trait. Then, you can pass in a value of either Cache or Mock type.
 //!
@@ -65,7 +65,7 @@ pub use base::{User, Group};
 pub use traits::{Users, Groups};
 
 
-/// A mocking users object that you can add your own users and groups to.
+/// A mocking users table that you can add your own users and groups to.
 pub struct MockUsers {
     users: HashMap<uid_t, Arc<User>>,
     groups: HashMap<gid_t, Arc<Group>>,
@@ -75,7 +75,7 @@ pub struct MockUsers {
 
 impl MockUsers {
 
-    /// Create a new, empty mock users object.
+    /// Create a new, empty mock users table.
     pub fn with_current_uid(current_uid: uid_t) -> Self {
         MockUsers {
             users: HashMap::new(),

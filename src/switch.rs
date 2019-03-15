@@ -145,8 +145,7 @@ pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> IOResult<()> {
 }
 
 /// Sets both the **current group** and the **effective group** for the
-/// running process to the ones with the given group IDs. Uses `setregid`
-/// internally.
+/// running process to the ones with the given group IDs.
 ///
 /// Typically, trying to switch to any group other than the group already
 /// running the process requires root privileges.
