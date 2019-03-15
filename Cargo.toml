@@ -2,12 +2,12 @@
 name = "users"
 description = "Library for getting information on Unix users and groups"
 
-authors = [ "ogham@bsago.me" ]
+authors = [ "Benjamin Sago <ogham@bsago.me>" ]
 documentation = "https://docs.rs/users/users/"
-homepage = "https://github.com/ogham/rust-users"
+repository = "https://github.com/ogham/rust-users"
 license = "MIT"
 readme = "README.md"
-version = "0.8.1"
+version = "0.9.0"
 
 [features]
 default = ["cache", "mock"]
