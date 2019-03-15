@@ -82,7 +82,11 @@ impl User {
         self.primary_group
     }
 
-    /// Returns a list of groups this user is a member of
+    /// Returns a list of groups this user is a member of.
+    ///
+    /// # libc functions used
+    ///
+    /// - [`getgrouplist`](https://docs.rs/libc/*/libc/fn.getgrouplist.html)
     pub fn groups(&self) -> Option<Vec<Group>> {
         get_user_groups(self.name(), self.primary_group_id())
     }
@@ -224,6 +228,10 @@ unsafe fn members(groups: *mut *mut c_char) -> Vec<OsString> {
 
 /// Searches for a `User` with the given ID in the system’s user database.
 /// Returns it if one is found, otherwise returns `None`.
+///
+/// # libc functions used
+///
+/// - [`getpwuid`](https://docs.rs/libc/*/libc/fn.getpwuid.html)
 pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
     unsafe {
         let passwd = libc::getpwuid(uid);
@@ -233,6 +241,10 @@ pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
 
 /// Searches for a `User` with the given username in the system’s user database.
 /// Returns it if one is found, otherwise returns `None`.
+///
+/// # libc functions used
+///
+/// - [`getpwnam`](https://docs.rs/libc/*/libc/fn.getpwnam.html)
 pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> {
     if let Ok(username) = CString::new(username.as_ref().as_bytes()) {
         unsafe {
@@ -250,6 +262,10 @@ pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> 
 
 /// Searches for a `Group` with the given ID in the system’s group database.
 /// Returns it if one is found, otherwise returns `None`.
+///
+/// # libc functions used
+///
+/// - [`getgrgid`](https://docs.rs/libc/*/libc/fn.getgrgid.html)
 pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
     unsafe {
         let group = libc::getgrgid(gid);
@@ -259,6 +275,10 @@ pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
 
 /// Searches for a `Group` with the given group name in the system’s group database.
 /// Returns it if one is found, otherwise returns `None`.
+///
+/// # libc functions used
+///
+/// - [`getgrnam`](https://docs.rs/libc/*/libc/fn.getgrnam.html)
 pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(group_name: &S) -> Option<Group> {
     if let Ok(group_name) = CString::new(group_name.as_ref().as_bytes()) {
         unsafe {
@@ -275,50 +295,90 @@ pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(group_name: &S) -> Option<Gro
 }
 
 /// Returns the user ID for the user running the process.
+///
+/// # libc functions used
+///
+/// - [`getuid`](https://docs.rs/libc/*/libc/fn.getuid.html)
 pub fn get_current_uid() -> uid_t {
     unsafe { libc::getuid() }
 }
 
 /// Returns the username of the user running the process.
+///
+/// # libc functions used
+///
+/// - [`getuid`](https://docs.rs/libc/*/libc/fn.getuid.html)
+/// - [`getpwuid`](https://docs.rs/libc/*/libc/fn.getpwuid.html)
 pub fn get_current_username() -> Option<OsString> {
     let uid = get_current_uid();
     get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name_arc).unwrap())
 }
 
 /// Returns the user ID for the effective user running the process.
+///
+/// # libc functions used
+///
+/// - [`geteuid`](https://docs.rs/libc/*/libc/fn.geteuid.html)
 pub fn get_effective_uid() -> uid_t {
     unsafe { libc::geteuid() }
 }
 
 /// Returns the username of the effective user running the process.
+///
+/// # libc functions used
+///
+/// - [`geteuid`](https://docs.rs/libc/*/libc/fn.geteuid.html)
+/// - [`getpwuid`](https://docs.rs/libc/*/libc/fn.getpwuid.html)
 pub fn get_effective_username() -> Option<OsString> {
     let uid = get_effective_uid();
     get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name_arc).unwrap())
 }
 
 /// Returns the group ID for the user running the process.
+///
+/// # libc functions used
+///
+/// - [`getgid`](https://docs.rs/libc/*/libc/fn.getgid.html)
 pub fn get_current_gid() -> gid_t {
     unsafe { libc::getgid() }
 }
 
 /// Returns the groupname of the user running the process.
+///
+/// # libc functions used
+///
+/// - [`getgid`](https://docs.rs/libc/*/libc/fn.getgid.html)
+/// - [`getgrgid`](https://docs.rs/libc/*/libc/fn.getgrgid.html)
 pub fn get_current_groupname() -> Option<OsString> {
     let gid = get_current_gid();
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
 }
 
 /// Returns the group ID for the effective user running the process.
+///
+/// # libc functions used
+///
+/// - [`getegid`](https://docs.rs/libc/*/libc/fn.getegid.html)
 pub fn get_effective_gid() -> gid_t {
     unsafe { libc::getegid() }
 }
 
 /// Returns the groupname of the effective user running the process.
+///
+/// # libc functions used
+///
+/// - [`getegid`](https://docs.rs/libc/*/libc/fn.getegid.html)
+/// - [`getgrgid`](https://docs.rs/libc/*/libc/fn.getgrgid.html)
 pub fn get_effective_groupname() -> Option<OsString> {
     let gid = get_effective_gid();
     get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
 }
 
 /// Returns the group access list for the current process.
+///
+/// # libc functions used
+///
+/// - [`getgroups`](https://docs.rs/libc/*/libc/fn.getgroups.html)
 pub fn group_access_list() -> IoResult<Vec<Group>> {
     let mut buff: Vec<gid_t> = vec![0; 1024];
 
@@ -338,7 +398,11 @@ pub fn group_access_list() -> IoResult<Vec<Group>> {
     }
 }
 
-/// Returns groups for a provided user name and primary group id
+/// Returns groups for a provided user name and primary group id.
+///
+/// # libc functions used
+///
+/// - [`getgrouplist`](https://docs.rs/libc/*/libc/fn.getgrouplist.html)
 pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Option<Vec<Group>> {
     // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
     #[cfg(all(unix, target_os="macos"))]
@@ -379,7 +443,13 @@ struct AllUsers;
 
 /// Creates a new iterator over every user present on the system.
 ///
-/// ## Unsafety
+/// # libc functions used
+///
+/// - [`getpwent`](https://docs.rs/libc/*/libc/fn.getpwent.html)
+/// - [`setpwent`](https://docs.rs/libc/*/libc/fn.setpwent.html)
+/// - [`endpwent`](https://docs.rs/libc/*/libc/fn.endpwent.html)
+///
+/// # Unsafety
 ///
 /// This constructor is marked as `unsafe`, which is odd for a crate
 /// that’s meant to be a safe interface. It *has* to be unsafe because

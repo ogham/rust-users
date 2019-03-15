@@ -15,10 +15,14 @@ extern {
 
 
 /// Sets the **current user** for the running process to the one with the
-/// given user ID. Uses `setuid` internally.
+/// given user ID.
 ///
 /// Typically, trying to switch to anyone other than the user already running
 /// the process requires root privileges.
+///
+/// # libc functions used
+///
+/// - [`setuid`](https://docs.rs/libc/*/libc/fn.setuid.html)
 pub fn set_current_uid(uid: uid_t) -> IOResult<()> {
     match unsafe { libc::setuid(uid) } {
          0 => Ok(()),
@@ -28,10 +32,14 @@ pub fn set_current_uid(uid: uid_t) -> IOResult<()> {
 }
 
 /// Sets the **current group** for the running process to the one with the
-/// given group ID. Uses `setgid` internally.
+/// given group ID.
 ///
 /// Typically, trying to switch to any group other than the group already
 /// running the process requires root privileges.
+///
+/// # libc functions used
+///
+/// - [`setgid`](https://docs.rs/libc/*/libc/fn.setgid.html)
 pub fn set_current_gid(gid: gid_t) -> IOResult<()> {
     match unsafe { libc::setgid(gid) } {
          0 => Ok(()),
@@ -41,10 +49,14 @@ pub fn set_current_gid(gid: gid_t) -> IOResult<()> {
 }
 
 /// Sets the **effective user** for the running process to the one with the
-/// given user ID. Uses `seteuid` internally.
+/// given user ID.
 ///
 /// Typically, trying to switch to anyone other than the user already running
 /// the process requires root privileges.
+///
+/// # libc functions used
+///
+/// - [`seteuid`](https://docs.rs/libc/*/libc/fn.seteuid.html)
 pub fn set_effective_uid(uid: uid_t) -> IOResult<()> {
     match unsafe { libc::seteuid(uid) } {
          0 => Ok(()),
@@ -54,10 +66,14 @@ pub fn set_effective_uid(uid: uid_t) -> IOResult<()> {
 }
 
 /// Sets the **effective group** for the running process to the one with the
-/// given group ID. Uses `setegid` internally.
+/// given group ID.
 ///
 /// Typically, trying to switch to any group other than the group already
 /// running the process requires root privileges.
+///
+/// # libc functions used
+///
+/// - [`setegid`](https://docs.rs/libc/*/libc/fn.setegid.html)
 pub fn set_effective_gid(gid: gid_t) -> IOResult<()> {
     match unsafe { libc::setegid(gid) } {
          0 => Ok(()),
@@ -67,10 +83,14 @@ pub fn set_effective_gid(gid: gid_t) -> IOResult<()> {
 }
 
 /// Sets both the **current user** and the **effective user** for the running
-/// process to the ones with the given user IDs. Uses `setreuid` internally.
+/// process to the ones with the given user IDs.
 ///
 /// Typically, trying to switch to anyone other than the user already running
 /// the process requires root privileges.
+///
+/// # libc functions used
+///
+/// - `setreuid`
 pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> IOResult<()> {
     match unsafe { setreuid(ruid, euid) } {
          0 => Ok(()),
@@ -85,6 +105,10 @@ pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> IOResult<()> {
 ///
 /// Typically, trying to switch to any group other than the group already
 /// running the process requires root privileges.
+///
+/// # libc functions used
+///
+/// - `setregid`
 pub fn set_both_gid(rgid: gid_t, egid: gid_t) -> IOResult<()> {
     match unsafe { setregid(rgid, egid) } {
          0 => Ok(()),
