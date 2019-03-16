@@ -394,7 +394,7 @@ pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> 
 ///
 /// # libc functions used
 ///
-/// - [`getgrgid`](https://docs.rs/libc/*/libc/fn.getgrgid.html)
+/// - [`getgrgid_r`](https://docs.rs/libc/*/libc/fn.getgrgid_r.html)
 ///
 /// # Examples
 ///
@@ -407,10 +407,26 @@ pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> 
 /// }
 /// ```
 pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
+    let mut passwd = unsafe { mem::zeroed::<c_group>() };
+    let mut buf = vec![0; 2048];  // TODO: Retry with larger buffer sizes
+    let mut result = ptr::null_mut::<c_group>();
+
     unsafe {
-        let group = libc::getgrgid(gid);
-        struct_to_group(group)
+        libc::getgrgid_r(gid, &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result);
     }
+
+    if result.is_null() {
+        // There is no such group, or an error has occurred.
+        // errno gets set if there’s an error.
+        return None;
+    }
+
+    if result != &mut passwd {
+        // The result of getgrgid_r should be its input struct.
+        return None;
+    }
+
+    unsafe { struct_to_group(result) }
 }
 
 /// Searches for a `Group` with the given group name in the system’s group database.
