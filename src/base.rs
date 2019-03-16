@@ -418,7 +418,7 @@ pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
 ///
 /// # libc functions used
 ///
-/// - [`getgrnam`](https://docs.rs/libc/*/libc/fn.getgrnam.html)
+/// - [`getgrnam_r`](https://docs.rs/libc/*/libc/fn.getgrnam_r.html)
 ///
 /// # Examples
 ///
@@ -430,19 +430,36 @@ pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
 ///     None        => println!("Group not found"),
 /// }
 /// ```
-pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(group_name: &S) -> Option<Group> {
-    if let Ok(group_name) = CString::new(group_name.as_ref().as_bytes()) {
-        unsafe {
-            let group = libc::getgrnam(group_name.as_ptr());
-            struct_to_group(group)
+pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(groupname: &S) -> Option<Group> {
+    let groupname = match CString::new(groupname.as_ref().as_bytes()) {
+        Ok(u)  => u,
+        Err(_) => {
+            // The groupname that was passed in contained a null character,
+            // which will match no usernames.
+            return None;
         }
+    };
+
+    let mut group = unsafe { mem::zeroed::<c_group>() };
+    let mut buf = vec![0; 2048];  // TODO: Retry with larger buffer sizes
+    let mut result = ptr::null_mut::<c_group>();
+
+    unsafe {
+        libc::getgrnam_r(groupname.as_ptr(), &mut group, buf.as_mut_ptr(), buf.len(), &mut result);
     }
-    else {
-        // The group name that was passed in contained a null character.
-        // This will *never* find anything, so just return `None`.
-        // (I can’t figure out a pleasant way to signal an error here)
-        None
+
+    if result.is_null() {
+        // There is no such group, or an error has occurred.
+        // errno gets set if there’s an error.
+        return None;
     }
+
+    if result != &mut group {
+        // The result of getgrnam_r should be its input struct.
+        return None;
+    }
+
+    unsafe { struct_to_group(result) }
 }
 
 /// Returns the user ID for the user running the process.
