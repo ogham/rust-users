@@ -178,10 +178,8 @@ pub struct SwitchUserGuard {
 
 impl Drop for SwitchUserGuard {
     fn drop(&mut self) {
-        // Panic on error here, as failing to set values back
-        // is a possible security breach.
-        set_effective_uid(self.uid).unwrap();
-        set_effective_gid(self.gid).unwrap();
+        set_effective_gid(self.gid).expect("Failed to set effective gid");
+        set_effective_uid(self.uid).expect("Failed to set effective uid");
     }
 }
 
@@ -191,25 +189,34 @@ impl Drop for SwitchUserGuard {
 /// Typically, trying to switch to any user or group other than the ones already
 /// running the process requires root privileges.
 ///
-/// **Use with care!** Possible security issues can happen, as Rust doesn’t
-/// guarantee running the destructor! If in doubt run `drop()` method on the
-/// guard value manually!
+/// # Security considerations
+///
+/// - Because Rust does not guarantee running the destructor, it’s a good idea
+///   to call [`std::mem::drop`](https://doc.rust-lang.org/std/mem/fn.drop.html)
+///   on the guard manually in security-sensitive situations.
+/// - This function switches the group before the user to prevent the user’s
+///   privileges being dropped before trying to change the group (look up
+///   `POS36-C`).
+/// - This function will panic upon failing to set either walue, so the
+///   program does not continue executing with too many privileges.
 ///
 /// # Examples
 ///
 /// ```no_run
 /// use users::switch::switch_user_group;
+/// use std::mem::drop;
 ///
 /// {
-///     let _guard = switch_user_group(1001, 1001);
+///     let guard = switch_user_group(1001, 1001);
 ///     // current and effective user and group IDs are 1001
+///     drop(guard);
 /// }
 /// // back to the old values
 /// ```
 pub fn switch_user_group(uid: uid_t, gid: gid_t) -> IOResult<SwitchUserGuard> {
     let current_state = SwitchUserGuard {
-        uid: get_effective_uid(),
         gid: get_effective_gid(),
+        uid: get_effective_uid(),
     };
 
     try!(set_effective_gid(gid));
