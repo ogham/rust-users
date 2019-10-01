@@ -4,7 +4,7 @@
 
 #![warn(missing_copy_implementations)]
 #![warn(missing_docs)]
-#![warn(trivial_casts, trivial_numeric_casts)]
+#![warn(trivial_casts)]
 #![warn(unused_extern_crates, unused_qualifications)]
 #![warn(unreachable_pub)]
 

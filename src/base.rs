@@ -713,7 +713,7 @@ pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Op
     else {
         buff.dedup();
         buff.into_iter()
-            .filter_map(|i| get_group_by_gid(i as gid_t))
+            .filter_map(|i| get_group_by_gid(i))
             .collect::<Vec<_>>()
             .into()
     }
