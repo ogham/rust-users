@@ -10,9 +10,15 @@ readme = "README.md"
 version = "0.9.1"
 
 [features]
-default = ["cache", "mock"]
+default = ["cache", "mock", "logging"]
 cache = []
 mock = []
+logging = ["log"]
 
-[dependencies]
-libc = "0.2.50"
+[dependencies.libc]
+version = "0.2.50"
+
+[dependencies.log]
+version = "0.4"
+optional = true
+default_features = false

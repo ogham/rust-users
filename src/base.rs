@@ -37,6 +37,11 @@ use std::os::unix::ffi::OsStrExt;
 use std::ptr;
 use std::sync::Arc;
 
+#[cfg(feature = "logging")]
+extern crate log;
+#[cfg(feature = "logging")]
+use self::log::debug;
+
 use libc::{c_char, uid_t, gid_t, c_int};
 use libc::passwd as c_passwd;
 use libc::group as c_group;
@@ -322,6 +327,9 @@ pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
     let mut buf = vec![0; 2048];  // TODO: Retry with larger buffer sizes
     let mut result = ptr::null_mut::<c_passwd>();
 
+    #[cfg(feature = "logging")]
+    debug!("Running getpwuid_r for user #{}", uid);
+
     unsafe {
         libc::getpwuid_r(uid, &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result);
     }
@@ -371,6 +379,9 @@ pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> 
     let mut buf = vec![0; 2048];  // TODO: Retry with larger buffer sizes
     let mut result = ptr::null_mut::<c_passwd>();
 
+    #[cfg(feature = "logging")]
+    debug!("Running getpwnam_r for user {:?}", username.as_ref());
+
     unsafe {
         libc::getpwnam_r(username.as_ptr(), &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result);
     }
@@ -410,6 +421,9 @@ pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
     let mut passwd = unsafe { mem::zeroed::<c_group>() };
     let mut buf = vec![0; 2048];  // TODO: Retry with larger buffer sizes
     let mut result = ptr::null_mut::<c_group>();
+
+    #[cfg(feature = "logging")]
+    debug!("Running getgruid_r for group #{}", gid);
 
     unsafe {
         libc::getgrgid_r(gid, &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result);
@@ -460,6 +474,9 @@ pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(groupname: &S) -> Option<Grou
     let mut buf = vec![0; 2048];  // TODO: Retry with larger buffer sizes
     let mut result = ptr::null_mut::<c_group>();
 
+    #[cfg(feature = "logging")]
+    debug!("Running getgrnam_r for group {:?}", groupname.as_ref());
+
     unsafe {
         libc::getgrnam_r(groupname.as_ptr(), &mut group, buf.as_mut_ptr(), buf.len(), &mut result);
     }
@@ -492,6 +509,9 @@ pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(groupname: &S) -> Option<Grou
 /// println!("The ID of the current user is {}", get_current_uid());
 /// ```
 pub fn get_current_uid() -> uid_t {
+    #[cfg(feature = "logging")]
+    debug!("Running getuid");
+
     unsafe { libc::getuid() }
 }
 
@@ -534,6 +554,9 @@ pub fn get_current_username() -> Option<OsString> {
 /// println!("The ID of the effective user is {}", get_effective_uid());
 /// ```
 pub fn get_effective_uid() -> uid_t {
+    #[cfg(feature = "logging")]
+    debug!("Running geteuid");
+
     unsafe { libc::geteuid() }
 }
 
@@ -573,6 +596,9 @@ pub fn get_effective_username() -> Option<OsString> {
 /// println!("The ID of the current group is {}", get_current_gid());
 /// ```
 pub fn get_current_gid() -> gid_t {
+    #[cfg(feature = "logging")]
+    debug!("Running getgid");
+
     unsafe { libc::getgid() }
 }
 
@@ -612,6 +638,9 @@ pub fn get_current_groupname() -> Option<OsString> {
 /// println!("The ID of the effective group is {}", get_effective_gid());
 /// ```
 pub fn get_effective_gid() -> gid_t {
+    #[cfg(feature = "logging")]
+    debug!("Running getegid");
+
     unsafe { libc::getegid() }
 }
 
@@ -655,6 +684,9 @@ pub fn get_effective_groupname() -> Option<OsString> {
 pub fn group_access_list() -> IoResult<Vec<Group>> {
     let mut buff: Vec<gid_t> = vec![0; 1024];
 
+    #[cfg(feature = "logging")]
+    debug!("Running getgroups");
+
     let res = unsafe {
         libc::getgroups(1024, buff.as_mut_ptr())
     };
@@ -695,6 +727,9 @@ pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Op
 
     let name = CString::new(username.as_ref().as_bytes()).unwrap();
     let mut count = buff.len() as c_int;
+
+    #[cfg(feature = "logging")]
+    debug!("Running getgrouplist for user {:?} and group #{}", username.as_ref(), gid);
 
     // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
     #[cfg(all(unix, target_os="macos"))]
@@ -762,6 +797,9 @@ struct AllUsers;
 /// }
 /// ```
 pub unsafe fn all_users() -> impl Iterator<Item=User> {
+    #[cfg(feature = "logging")]
+    debug!("Iterating over all users");
+
     #[cfg(not(target_os = "android"))]
     libc::setpwent();
     AllUsers
