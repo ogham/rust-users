@@ -219,7 +219,7 @@ pub fn switch_user_group(uid: uid_t, gid: gid_t) -> io::Result<SwitchUserGuard> 
         uid: get_effective_uid(),
     };
 
-    try!(set_effective_gid(gid));
-    try!(set_effective_uid(uid));
+    set_effective_gid(gid)?;
+    set_effective_uid(uid)?;
     Ok(current_state)
 }
