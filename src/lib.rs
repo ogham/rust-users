@@ -1,12 +1,9 @@
-#![crate_name = "users"]
-#![crate_type = "rlib"]
-#![crate_type = "dylib"]
-
 #![warn(missing_copy_implementations)]
 #![warn(missing_docs)]
-#![warn(trivial_casts, trivial_numeric_casts)]
-#![warn(unused_extern_crates, unused_qualifications)]
+#![warn(nonstandard_style)]
+#![warn(trivial_numeric_casts)]
 #![warn(unreachable_pub)]
+#![warn(unused)]
 
 
 //! This is a library for getting information on Unix users and groups. It
