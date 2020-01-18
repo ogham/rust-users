@@ -114,8 +114,8 @@
 //! broken: IDs shouldn’t be assumed to map to actual users and groups, and
 //! usernames and group names aren’t guaranteed to map either!
 //!
-//! Use the mocking module to create custom tables to test your code for these
-//! edge cases.
+//! Use the [`mock`](mock/index.html) module to create custom tables to test
+//! your code for these edge cases.
 
 
 extern crate libc;
