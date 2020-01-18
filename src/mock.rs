@@ -77,7 +77,7 @@ impl MockUsers {
 
     /// Create a new, empty mock users table.
     pub fn with_current_uid(current_uid: uid_t) -> Self {
-        MockUsers {
+        Self {
             users: HashMap::new(),
             groups: HashMap::new(),
             uid: current_uid,

@@ -122,7 +122,7 @@ struct BiMap<K, V> {
 // needed to produce a default instance of any HashMaps...
 impl Default for UsersCache {
     fn default() -> Self {
-        UsersCache {
+        Self {
             users: BiMap {
                 forward:  RefCell::new(HashMap::new()),
                 backward: RefCell::new(HashMap::new()),
@@ -154,7 +154,7 @@ impl UsersCache {
     /// let cache = UsersCache::new();
     /// ```
     pub fn new() -> Self {
-        UsersCache::default()
+        Self::default()
     }
 
     /// Creates a new cache that contains all the users present on the system.
@@ -171,7 +171,7 @@ impl UsersCache {
     /// let cache = unsafe { UsersCache::with_all_users() };
     /// ```
     pub unsafe fn with_all_users() -> Self {
-        let cache = UsersCache::new();
+        let cache = Self::new();
 
         for user in all_users() {
             let uid = user.uid();

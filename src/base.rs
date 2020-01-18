@@ -77,7 +77,7 @@ impl User {
         let name_arc = Arc::new(name.into());
         let extras = os::UserExtras::default();
 
-        User { uid, name_arc, primary_group, extras }
+        Self { uid, name_arc, primary_group, extras }
     }
 
     /// Returns this user’s ID.
@@ -191,7 +191,7 @@ impl Group {
         let name_arc = Arc::new(name.into());
         let extras = os::GroupExtras::default();
 
-        Group { gid, name_arc, extras }
+        Self { gid, name_arc, extras }
     }
 
     /// Returns this group’s ID.
@@ -911,7 +911,7 @@ pub mod os {
 
         impl Default for UserExtras {
             fn default() -> Self {
-                UserExtras {
+                Self {
                     home_dir: "/var/empty".into(),
                     shell:    "/bin/false".into(),
                     password: "*".into(),
@@ -933,7 +933,7 @@ pub mod os {
                     let shell    = from_raw_buf(passwd.pw_shell).into();
                     let password = from_raw_buf(passwd.pw_passwd);
 
-                    UserExtras { home_dir, shell, password }
+                    Self { home_dir, shell, password }
                 }
             }
         }
@@ -983,7 +983,7 @@ pub mod os {
             /// Extract the OS-specific fields from the C `group` struct that
             /// we just read.
             pub unsafe fn from_struct(group: c_group) -> Self {
-                GroupExtras { members: members(group.gr_mem) }
+                Self { members: members(group.gr_mem) }
             }
         }
 
@@ -1029,7 +1029,7 @@ pub mod os {
             /// Extract the OS-specific fields from the C `passwd` struct that
             /// we just read.
             pub unsafe fn from_passwd(passwd: c_passwd) -> Self {
-                UserExtras {
+                Self {
                     change: passwd.pw_change,
                     expire: passwd.pw_expire,
                     extras: super::unix::UserExtras::from_passwd(passwd),
@@ -1088,7 +1088,7 @@ pub mod os {
 
         impl Default for UserExtras {
             fn default() -> Self {
-                UserExtras {
+                Self {
                     extras: super::unix::UserExtras::default(),
                     change: 0,
                     expire: 0,
