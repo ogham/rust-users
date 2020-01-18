@@ -22,3 +22,9 @@ version = "0.2.50"
 version = "0.4"
 optional = true
 default_features = false
+
+
+[dev_dependencies.env_logger]
+version = "0.7"
+default_features = false
+features = []

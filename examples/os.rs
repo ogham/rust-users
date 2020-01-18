@@ -3,7 +3,12 @@ use users::{Users, Groups, UsersCache};
 use users::os::unix::{UserExt, GroupExt};
 //use users::os::bsd::UserExt as BSDUserExt;
 
+extern crate env_logger;
+
+
 fn main() {
+    env_logger::init();
+
 	let cache = UsersCache::new();
 
 	let current_uid = cache.get_current_uid();

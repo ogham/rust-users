@@ -3,9 +3,14 @@ use users::{get_current_uid, get_current_gid, get_effective_uid, get_effective_g
 use users::switch::switch_user_group;
 use std::mem::drop;
 
+extern crate env_logger;
+
+
 const SAMPLE_ID: uid_t = 502;
 
 fn main() {
+    env_logger::init();
+
     println!("\nInitial values:");
     print_state();
 

@@ -18,6 +18,8 @@
 extern crate users;
 use users::{Users, UsersCache, uid_t};
 
+extern crate env_logger;
+
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::thread;
@@ -25,7 +27,9 @@ use std::thread;
 const LO: uid_t = 500;
 const HI: uid_t = 510;
 
+
 fn main() {
+    env_logger::init();
 
     // For thread-safely, our users cache needs to be within a Mutex, so
     // only one thread can access it once. This Mutex needs to be within an

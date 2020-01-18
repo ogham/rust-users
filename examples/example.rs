@@ -1,7 +1,12 @@
 extern crate users;
 use users::{Users, Groups, UsersCache};
 
+extern crate env_logger;
+
+
 fn main() {
+    env_logger::init();
+
 	let cache = UsersCache::new();
 
 	let current_uid = cache.get_current_uid();
