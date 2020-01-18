@@ -17,9 +17,9 @@
 //! `add_user` and `add_group` to the table:
 //!
 //! ```
+//! use std::sync::Arc;
 //! use users::mock::{MockUsers, User, Group};
 //! use users::os::unix::{UserExt, GroupExt};
-//! use std::sync::Arc;
 //!
 //! let mut users = MockUsers::with_current_uid(1000);
 //! let bobbins = User::new(1000, "Bobbins", 1000).with_home_dir("/home/bobbins");
@@ -39,10 +39,10 @@
 //! Here’s a complete example:
 //!
 //! ```
+//! use std::sync::Arc;
 //! use users::{Users, UsersCache, User};
 //! use users::os::unix::UserExt;
 //! use users::mock::MockUsers;
-//! use std::sync::Arc;
 //!
 //! fn print_current_username<U: Users>(users: &mut U) {
 //!     println!("Current user: {:?}", users.get_current_username());

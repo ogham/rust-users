@@ -9,8 +9,8 @@
 //! ## Example
 //!
 //! ```no_run
-//! use users::{Users, UsersCache};
 //! use std::sync::Arc;
+//! use users::{Users, UsersCache};
 //!
 //! let mut cache = UsersCache::new();
 //! let user      = cache.get_user_by_uid(502).expect("User not found");
