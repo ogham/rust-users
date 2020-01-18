@@ -1,6 +1,6 @@
 //! Functions for switching the running process’s user or group.
 
-use std::io::{Error as IOError, Result as IOResult};
+use std::io;
 use libc::{uid_t, gid_t, c_int};
 
 use base::{get_effective_uid, get_effective_gid};
@@ -32,10 +32,10 @@ extern {
 /// set_current_uid(1001);
 /// // current user ID is 1001
 /// ```
-pub fn set_current_uid(uid: uid_t) -> IOResult<()> {
+pub fn set_current_uid(uid: uid_t) -> io::Result<()> {
     match unsafe { libc::setuid(uid) } {
          0 => Ok(()),
-        -1 => Err(IOError::last_os_error()),
+        -1 => Err(io::Error::last_os_error()),
          n => unreachable!("setuid returned {}", n)
     }
 }
@@ -58,10 +58,10 @@ pub fn set_current_uid(uid: uid_t) -> IOResult<()> {
 /// set_current_gid(1001);
 /// // current group ID is 1001
 /// ```
-pub fn set_current_gid(gid: gid_t) -> IOResult<()> {
+pub fn set_current_gid(gid: gid_t) -> io::Result<()> {
     match unsafe { libc::setgid(gid) } {
          0 => Ok(()),
-        -1 => Err(IOError::last_os_error()),
+        -1 => Err(io::Error::last_os_error()),
          n => unreachable!("setgid returned {}", n)
     }
 }
@@ -84,10 +84,10 @@ pub fn set_current_gid(gid: gid_t) -> IOResult<()> {
 /// set_effective_uid(1001);
 /// // current effective user ID is 1001
 /// ```
-pub fn set_effective_uid(uid: uid_t) -> IOResult<()> {
+pub fn set_effective_uid(uid: uid_t) -> io::Result<()> {
     match unsafe { libc::seteuid(uid) } {
          0 => Ok(()),
-        -1 => Err(IOError::last_os_error()),
+        -1 => Err(io::Error::last_os_error()),
          n => unreachable!("seteuid returned {}", n)
     }
 }
@@ -110,10 +110,10 @@ pub fn set_effective_uid(uid: uid_t) -> IOResult<()> {
 /// set_effective_gid(1001);
 /// // current effective group ID is 1001
 /// ```
-pub fn set_effective_gid(gid: gid_t) -> IOResult<()> {
+pub fn set_effective_gid(gid: gid_t) -> io::Result<()> {
     match unsafe { libc::setegid(gid) } {
          0 => Ok(()),
-        -1 => Err(IOError::last_os_error()),
+        -1 => Err(io::Error::last_os_error()),
          n => unreachable!("setegid returned {}", n)
     }
 }
@@ -136,10 +136,10 @@ pub fn set_effective_gid(gid: gid_t) -> IOResult<()> {
 /// set_both_uid(1001, 1001);
 /// // current user ID and effective user ID are 1001
 /// ```
-pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> IOResult<()> {
+pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> io::Result<()> {
     match unsafe { setreuid(ruid, euid) } {
          0 => Ok(()),
-        -1 => Err(IOError::last_os_error()),
+        -1 => Err(io::Error::last_os_error()),
          n => unreachable!("setreuid returned {}", n)
     }
 }
@@ -162,10 +162,10 @@ pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> IOResult<()> {
 /// set_both_gid(1001, 1001);
 /// // current user ID and effective group ID are 1001
 /// ```
-pub fn set_both_gid(rgid: gid_t, egid: gid_t) -> IOResult<()> {
+pub fn set_both_gid(rgid: gid_t, egid: gid_t) -> io::Result<()> {
     match unsafe { setregid(rgid, egid) } {
          0 => Ok(()),
-        -1 => Err(IOError::last_os_error()),
+        -1 => Err(io::Error::last_os_error()),
          n => unreachable!("setregid returned {}", n)
     }
 }
@@ -213,7 +213,7 @@ impl Drop for SwitchUserGuard {
 /// }
 /// // back to the old values
 /// ```
-pub fn switch_user_group(uid: uid_t, gid: gid_t) -> IOResult<SwitchUserGuard> {
+pub fn switch_user_group(uid: uid_t, gid: gid_t) -> io::Result<SwitchUserGuard> {
     let current_state = SwitchUserGuard {
         gid: get_effective_gid(),
         uid: get_effective_uid(),
