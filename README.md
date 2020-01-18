@@ -97,18 +97,21 @@ println!("The '{}' group has the ID {}", group.name(), group.gid());
 ```
 
 
+## Logging
+
+The `logging` feature, which is on by default, uses the `log` crate to record all interactions with the operating system.
+
+
 ## Caveats
 
 You should be prepared for the users and groups tables to be completely broken: IDs shouldn’t be assumed to map to actual users and groups, and usernames and group names aren’t guaranteed to map either!
-
-Use the mocking module to create custom tables to test your code for these edge cases.
 
 
 # Mockable users and groups
 
 When you’re testing your code, you don’t want to actually rely on the system actually having various users and groups present - it’s much better to have a custom set of users that are *guaranteed* to be there, so you can test against them.
 
-This sub-library allows you to create these custom users and groups definitions, then access them using the same `Users` trait as in the main library, with few changes to your code.
+The `mock` module allows you to create these custom users and groups definitions, then access them using the same `Users` trait as in the main library, with few changes to your code.
 
 
 ## Creating mock users

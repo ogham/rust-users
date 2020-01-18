@@ -108,6 +108,12 @@
 //! ```
 //!
 //!
+//! ## Logging
+//!
+//! The `logging` feature, which is on by default, uses the `log` crate to
+//! record all interactions with the operating system.
+//!
+//!
 //! ## Caveats
 //!
 //! You should be prepared for the users and groups tables to be completely

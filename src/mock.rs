@@ -5,7 +5,7 @@
 //! to have a custom set of users that are *guaranteed* to be there, so you can
 //! test against them.
 //!
-//! This sub-library allows you to create these custom users and groups
+//! This module allows you to create these custom users and groups
 //! definitions, then access them using the same `Users` trait as in the main
 //! library, with few changes to your code.
 //!
