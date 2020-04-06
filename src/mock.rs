@@ -110,7 +110,7 @@ impl Users for MockUsers {
     }
 
     fn get_current_username(&self) -> Option<Arc<OsString>> {
-        self.users.get(&self.uid).map(|u| u.name_arc.clone())
+        self.users.get(&self.uid).map(|u| Arc::clone(&u.name_arc))
     }
 
     fn get_effective_uid(&self) -> uid_t {
@@ -118,7 +118,7 @@ impl Users for MockUsers {
     }
 
     fn get_effective_username(&self) -> Option<Arc<OsString>> {
-        self.users.get(&self.uid).map(|u| u.name_arc.clone())
+        self.users.get(&self.uid).map(|u| Arc::clone(&u.name_arc))
     }
 }
 
@@ -137,7 +137,7 @@ impl Groups for MockUsers {
     }
 
     fn get_current_groupname(&self) -> Option<Arc<OsString>> {
-        self.groups.get(&self.uid).map(|u| u.name_arc.clone())
+        self.groups.get(&self.uid).map(|u| Arc::clone(&u.name_arc))
     }
 
     fn get_effective_gid(&self) -> uid_t {
@@ -145,7 +145,7 @@ impl Groups for MockUsers {
     }
 
     fn get_effective_groupname(&self) -> Option<Arc<OsString>> {
-        self.groups.get(&self.uid).map(|u| u.name_arc.clone())
+        self.groups.get(&self.uid).map(|u| Arc::clone(&u.name_arc))
     }
 }
 
@@ -174,7 +174,7 @@ mod test {
     fn uid() {
         let mut users = MockUsers::with_current_uid(0);
         users.add_user(User::new(1337, "fred", 101));
-        assert_eq!(Some(Arc::new("fred".into())), users.get_user_by_uid(1337).map(|u| u.name_arc.clone()))
+        assert_eq!(Some(Arc::new("fred".into())), users.get_user_by_uid(1337).map(|u| Arc::clone(&u.name_arc)))
     }
 
     #[test]
@@ -194,14 +194,14 @@ mod test {
     #[test]
     fn no_uid() {
         let users = MockUsers::with_current_uid(0);
-        assert_eq!(None, users.get_user_by_uid(1337).map(|u| u.name_arc.clone()))
+        assert_eq!(None, users.get_user_by_uid(1337).map(|u| Arc::clone(&u.name_arc)))
     }
 
     #[test]
     fn gid() {
         let mut users = MockUsers::with_current_uid(0);
         users.add_group(Group::new(1337, "fred"));
-        assert_eq!(Some(Arc::new("fred".into())), users.get_group_by_gid(1337).map(|g| g.name_arc.clone()))
+        assert_eq!(Some(Arc::new("fred".into())), users.get_group_by_gid(1337).map(|g| Arc::clone(&g.name_arc)))
     }
 
     #[test]
@@ -221,6 +221,6 @@ mod test {
     #[test]
     fn no_gid() {
         let users = MockUsers::with_current_uid(0);
-        assert_eq!(None, users.get_group_by_gid(1337).map(|g| g.name_arc.clone()))
+        assert_eq!(None, users.get_group_by_gid(1337).map(|g| Arc::clone(&g.name_arc)))
     }
 }

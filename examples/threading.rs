@@ -40,7 +40,7 @@ fn main() {
     // Loop over the range and query all the users in the range. Although we
     // could use the `&User` values returned, we just ignore them.
     for uid in LO .. HI {
-        let cache = cache.clone();
+        let cache = Arc::clone(&cache);
 
         thread::spawn(move || {
             let cache = cache.lock().unwrap();  // Unlock the mutex

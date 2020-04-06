@@ -176,8 +176,8 @@ impl UsersCache {
         for user in all_users() {
             let uid = user.uid();
             let user_arc = Arc::new(user);
-            cache.users.forward.borrow_mut().insert(uid, Some(user_arc.clone()));
-            cache.users.backward.borrow_mut().insert(user_arc.name_arc.clone(), Some(uid));
+            cache.users.forward.borrow_mut().insert(uid, Some(Arc::clone(&user_arc)));
+            cache.users.backward.borrow_mut().insert(Arc::clone(&user_arc.name_arc), Some(uid));
         }
 
         cache
@@ -191,16 +191,16 @@ impl Users for UsersCache {
 
         let entry = match users_forward.entry(uid) {
             Vacant(e) => e,
-            Occupied(e) => return e.get().clone(),
+            Occupied(e) => return e.get().as_ref().map(Arc::clone),
         };
 
         if let Some(user) = super::get_user_by_uid(uid) {
-            let newsername = user.name_arc.clone();
+            let newsername = Arc::clone(&user.name_arc);
             let mut users_backward = self.users.backward.borrow_mut();
             users_backward.insert(newsername, Some(uid));
 
             let user_arc = Arc::new(user);
-            entry.insert(Some(user_arc.clone()));
+            entry.insert(Some(Arc::clone(&user_arc)));
             Some(user_arc)
         }
         else {
@@ -217,8 +217,8 @@ impl Users for UsersCache {
             Occupied(e) => {
                 return (*e.get()).and_then(|uid| {
                     let users_forward = self.users.forward.borrow_mut();
-                    users_forward[&uid].clone()
-                });
+                    users_forward[&uid].as_ref().map(Arc::clone)
+                })
             }
         };
 
@@ -227,7 +227,7 @@ impl Users for UsersCache {
             let user_arc = Arc::new(user);
 
             let mut users_forward = self.users.forward.borrow_mut();
-            users_forward.insert(uid, Some(user_arc.clone()));
+            users_forward.insert(uid, Some(Arc::clone(&user_arc)));
             entry.insert(Some(uid));
 
             Some(user_arc)
@@ -248,7 +248,7 @@ impl Users for UsersCache {
 
     fn get_current_username(&self) -> Option<Arc<OsString>> {
         let uid = self.get_current_uid();
-        self.get_user_by_uid(uid).map(|u| u.name_arc.clone())
+        self.get_user_by_uid(uid).map(|u| Arc::clone(&u.name_arc))
     }
 
     fn get_effective_uid(&self) -> uid_t {
@@ -261,7 +261,7 @@ impl Users for UsersCache {
 
     fn get_effective_username(&self) -> Option<Arc<OsString>> {
         let uid = self.get_effective_uid();
-        self.get_user_by_uid(uid).map(|u| u.name_arc.clone())
+        self.get_user_by_uid(uid).map(|u| Arc::clone(&u.name_arc))
     }
 }
 
@@ -272,16 +272,16 @@ impl Groups for UsersCache {
 
         let entry = match groups_forward.entry(gid) {
             Vacant(e) => e,
-            Occupied(e) => return e.get().clone(),
+            Occupied(e) => return e.get().as_ref().map(Arc::clone),
         };
 
         if let Some(group) = super::get_group_by_gid(gid) {
-            let new_group_name = group.name_arc.clone();
+            let new_group_name = Arc::clone(&group.name_arc);
             let mut groups_backward = self.groups.backward.borrow_mut();
             groups_backward.insert(new_group_name, Some(gid));
 
             let group_arc = Arc::new(group);
-            entry.insert(Some(group_arc.clone()));
+            entry.insert(Some(Arc::clone(&group_arc)));
             Some(group_arc)
         }
         else {
@@ -308,7 +308,7 @@ impl Groups for UsersCache {
             let gid = group.gid();
 
             let mut groups_forward = self.groups.forward.borrow_mut();
-            groups_forward.insert(gid, Some(group_arc.clone()));
+            groups_forward.insert(gid, Some(Arc::clone(&group_arc)));
             entry.insert(Some(gid));
 
             Some(group_arc)
@@ -329,7 +329,7 @@ impl Groups for UsersCache {
 
     fn get_current_groupname(&self) -> Option<Arc<OsString>> {
         let gid = self.get_current_gid();
-        self.get_group_by_gid(gid).map(|g| g.name_arc.clone())
+        self.get_group_by_gid(gid).map(|g| Arc::clone(&g.name_arc))
     }
 
     fn get_effective_gid(&self) -> gid_t {
@@ -342,6 +342,6 @@ impl Groups for UsersCache {
 
     fn get_effective_groupname(&self) -> Option<Arc<OsString>> {
         let gid = self.get_effective_gid();
-        self.get_group_by_gid(gid).map(|g| g.name_arc.clone())
+        self.get_group_by_gid(gid).map(|g| Arc::clone(&g.name_arc))
     }
 }
