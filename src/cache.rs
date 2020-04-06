@@ -244,14 +244,11 @@ impl Users for UsersCache {
     }
 
     fn get_current_uid(&self) -> uid_t {
-        match self.uid.get() {
-            Some(uid) => uid,
-            None => {
-                let uid = super::get_current_uid();
-                self.uid.set(Some(uid));
-                uid
-            }
-        }
+        self.uid.get().unwrap_or_else(|| {
+            let uid = super::get_current_uid();
+            self.uid.set(Some(uid));
+            uid
+        })
     }
 
     fn get_current_username(&self) -> Option<Arc<OsString>> {
@@ -260,14 +257,11 @@ impl Users for UsersCache {
     }
 
     fn get_effective_uid(&self) -> uid_t {
-        match self.euid.get() {
-            Some(uid) => uid,
-            None => {
-                let uid = super::get_effective_uid();
-                self.euid.set(Some(uid));
-                uid
-            }
-        }
+        self.euid.get().unwrap_or_else(|| {
+            let uid = super::get_effective_uid();
+            self.euid.set(Some(uid));
+            uid
+        })
     }
 
     fn get_effective_username(&self) -> Option<Arc<OsString>> {
@@ -338,14 +332,11 @@ impl Groups for UsersCache {
     }
 
     fn get_current_gid(&self) -> gid_t {
-        match self.gid.get() {
-            Some(gid) => gid,
-            None => {
-                let gid = super::get_current_gid();
-                self.gid.set(Some(gid));
-                gid
-            }
-        }
+        self.gid.get().unwrap_or_else(|| {
+            let gid = super::get_current_gid();
+            self.gid.set(Some(gid));
+            gid
+        })
     }
 
     fn get_current_groupname(&self) -> Option<Arc<OsString>> {
@@ -354,14 +345,11 @@ impl Groups for UsersCache {
     }
 
     fn get_effective_gid(&self) -> gid_t {
-        match self.egid.get() {
-            Some(gid) => gid,
-            None => {
-                let gid = super::get_effective_gid();
-                self.egid.set(Some(gid));
-                gid
-            }
-        }
+        self.egid.get().unwrap_or_else(|| {
+            let gid = super::get_effective_gid();
+            self.egid.set(Some(gid));
+            gid
+        })
     }
 
     fn get_effective_groupname(&self) -> Option<Arc<OsString>> {
