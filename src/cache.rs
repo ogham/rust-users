@@ -106,11 +106,13 @@ pub struct UsersCache {
     egid: Cell<Option<gid_t>>,
 }
 
-/// A kinda-bi-directional HashMap that associates keys to values, and then
-/// strings back to keys. It doesn’t go the full route and offer
-/// *values*-to-keys lookup, because we only want to search based on
-/// usernames and group names. There wouldn’t be much point offering a “User
-/// to uid” map, as the uid is present in the user struct!
+/// A kinda-bi-directional `HashMap` that associates keys to values, and
+/// then strings back to keys.
+///
+/// It doesn’t go the full route and offer *values*-to-keys lookup, because we
+/// only want to search based on usernames and group names. There wouldn’t be
+/// much point offering a “User to uid” map, as the uid is present in the
+/// `User` struct!
 struct BiMap<K, V> {
     forward:  RefCell< HashMap<K, Option<Arc<V>>> >,
     backward: RefCell< HashMap<Arc<OsString>, Option<K>> >,
@@ -158,6 +160,8 @@ impl UsersCache {
     }
 
     /// Creates a new cache that contains all the users present on the system.
+    ///
+    /// # Safety
     ///
     /// This is `unsafe` because we cannot prevent data races if two caches
     /// were attempted to be initialised on different threads at the same time.

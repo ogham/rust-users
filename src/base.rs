@@ -703,7 +703,7 @@ pub fn group_access_list() -> io::Result<Vec<Group>> {
     }
     else {
         let mut groups = buff.into_iter()
-                             .filter_map(|i| get_group_by_gid(i))
+                             .filter_map(get_group_by_gid)
                              .collect::<Vec<_>>();
         groups.dedup_by_key(|i| i.gid());
         Ok(groups)
