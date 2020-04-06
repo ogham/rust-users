@@ -32,7 +32,7 @@
 use std::ffi::{CStr, CString, OsStr, OsString};
 use std::fmt;
 use std::mem;
-use std::io::{Result as IoResult, Error as IoError};
+use std::io;
 use std::os::unix::ffi::OsStrExt;
 use std::ptr;
 use std::sync::Arc;
@@ -683,7 +683,7 @@ pub fn get_effective_groupname() -> Option<OsString> {
 ///     println!("Process can access group #{} ({:?})", group.gid(), group.name());
 /// }
 /// ```
-pub fn group_access_list() -> IoResult<Vec<Group>> {
+pub fn group_access_list() -> io::Result<Vec<Group>> {
     let mut buff: Vec<gid_t> = vec![0; 1024];
 
     #[cfg(feature = "logging")]
@@ -694,7 +694,7 @@ pub fn group_access_list() -> IoResult<Vec<Group>> {
     };
 
     if res < 0 {
-        Err(IoError::last_os_error())
+        Err(io::Error::last_os_error())
     }
     else {
         let mut groups = buff.into_iter()
