@@ -249,19 +249,14 @@ unsafe fn from_raw_buf(p: *const c_char) -> OsString {
     OsStr::from_bytes(CStr::from_ptr(p).to_bytes()).to_os_string()
 }
 
-unsafe fn passwd_to_user(pointer: *const c_passwd) -> Option<User> {
-    if let Some(passwd) = pointer.as_ref().map(|p| ptr::read(p)) {
-        let name = Arc::new(from_raw_buf(passwd.pw_name));
+unsafe fn passwd_to_user(passwd: c_passwd) -> User {
+    let name = Arc::new(from_raw_buf(passwd.pw_name));
 
-        Some(User {
-            uid:           passwd.pw_uid,
-            name_arc:      name,
-            primary_group: passwd.pw_gid,
-            extras:        os::UserExtras::from_passwd(passwd),
-        })
-    }
-    else {
-        None
+    User {
+        uid:           passwd.pw_uid,
+        name_arc:      name,
+        primary_group: passwd.pw_gid,
+        extras:        os::UserExtras::from_passwd(passwd),
     }
 }
 
@@ -345,7 +340,8 @@ pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
         return None;
     }
 
-    unsafe { passwd_to_user(result) }
+    let user = unsafe { passwd_to_user(result.read()) };
+    Some(user)
 }
 
 /// Searches for a `User` with the given username in the system’s user database.
@@ -397,7 +393,8 @@ pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> 
         return None;
     }
 
-    unsafe { passwd_to_user(result) }
+    let user = unsafe { passwd_to_user(result.read()) };
+    Some(user)
 }
 
 /// Searches for a `Group` with the given ID in the system’s group database.
@@ -833,7 +830,15 @@ impl Iterator for AllUsers {
         #[cfg(feature = "logging")]
         debug!("Running getpwent");
 
-        unsafe { passwd_to_user(libc::getpwent()) }
+        let result = unsafe { libc::getpwent() };
+
+        if result.is_null() {
+            None
+        }
+        else {
+            let user = unsafe { passwd_to_user(result.read()) };
+            Some(user)
+        }
     }
 }
 
