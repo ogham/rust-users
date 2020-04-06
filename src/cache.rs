@@ -146,7 +146,7 @@ impl UsersCache {
 
     /// Creates a new empty cache.
     ///
-    /// ### Examples
+    /// # Examples
     ///
     /// ```
     /// use users::cache::UsersCache;
@@ -163,7 +163,7 @@ impl UsersCache {
     /// were attempted to be initialised on different threads at the same time.
     /// For more information, see the [`all_users` documentation](../fn.all_users.html).
     ///
-    /// ### Examples
+    /// # Examples
     ///
     /// ```
     /// use users::cache::UsersCache;

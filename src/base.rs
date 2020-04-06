@@ -249,6 +249,7 @@ unsafe fn from_raw_buf(p: *const c_char) -> OsString {
     OsStr::from_bytes(CStr::from_ptr(p).to_bytes()).to_os_string()
 }
 
+/// Reads data from the `c_passwd` and returns it as a `User`.
 unsafe fn passwd_to_user(passwd: c_passwd) -> User {
     let name = Arc::new(from_raw_buf(passwd.pw_name));
 
@@ -260,6 +261,7 @@ unsafe fn passwd_to_user(passwd: c_passwd) -> User {
     }
 }
 
+/// Reads data from the `c_group` and returns it as a `Group`.
 unsafe fn struct_to_group(group: c_group) -> Group {
     let name = Arc::new(from_raw_buf(group.gr_name));
 
@@ -761,7 +763,7 @@ struct AllUsers;
 /// - [`setpwent`](https://docs.rs/libc/*/libc/fn.setpwent.html)
 /// - [`endpwent`](https://docs.rs/libc/*/libc/fn.endpwent.html)
 ///
-/// # Unsafety
+/// # Safety
 ///
 /// This constructor is marked as `unsafe`, which is odd for a crate
 /// that’s meant to be a safe interface. It *has* to be unsafe because
