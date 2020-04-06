@@ -798,7 +798,7 @@ struct AllUsers;
 /// ```
 pub unsafe fn all_users() -> impl Iterator<Item=User> {
     #[cfg(feature = "logging")]
-    debug!("Iterating over all users");
+    debug!("Running setpwent");
 
     #[cfg(not(target_os = "android"))]
     libc::setpwent();
@@ -806,8 +806,16 @@ pub unsafe fn all_users() -> impl Iterator<Item=User> {
 }
 
 impl Drop for AllUsers {
+    #[cfg(target_os = "android")]
     fn drop(&mut self) {
-        #[cfg(not(target_os = "android"))]
+        // nothing to do here
+    }
+
+    #[cfg(not(target_os = "android"))]
+    fn drop(&mut self) {
+        #[cfg(feature = "logging")]
+        debug!("Running endpwent");
+
         unsafe { libc::endpwent() };
     }
 }
@@ -819,8 +827,12 @@ impl Iterator for AllUsers {
     fn next(&mut self) -> Option<User> {
         None
     }
+
     #[cfg(not(target_os = "android"))]
     fn next(&mut self) -> Option<User> {
+        #[cfg(feature = "logging")]
+        debug!("Running getpwent");
+
         unsafe { passwd_to_user(libc::getpwent()) }
     }
 }
