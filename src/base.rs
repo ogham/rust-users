@@ -260,18 +260,13 @@ unsafe fn passwd_to_user(passwd: c_passwd) -> User {
     }
 }
 
-unsafe fn struct_to_group(pointer: *const c_group) -> Option<Group> {
-    if let Some(group) = pointer.as_ref().map(|p| ptr::read(p)) {
-        let name = Arc::new(from_raw_buf(group.gr_name));
+unsafe fn struct_to_group(group: c_group) -> Group {
+    let name = Arc::new(from_raw_buf(group.gr_name));
 
-        Some(Group {
-            gid:       group.gr_gid,
-            name_arc:  name,
-            extras:    os::GroupExtras::from_struct(group),
-        })
-    }
-    else {
-        None
+    Group {
+        gid:      group.gr_gid,
+        name_arc: name,
+        extras:   os::GroupExtras::from_struct(group),
     }
 }
 
@@ -437,7 +432,8 @@ pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
         return None;
     }
 
-    unsafe { struct_to_group(result) }
+    let group = unsafe { struct_to_group(result.read()) };
+    Some(group)
 }
 
 /// Searches for a `Group` with the given group name in the system’s group database.
@@ -489,7 +485,8 @@ pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(groupname: &S) -> Option<Grou
         return None;
     }
 
-    unsafe { struct_to_group(result) }
+    let group = unsafe { struct_to_group(result.read()) };
+    Some(group)
 }
 
 /// Returns the user ID for the user running the process.
