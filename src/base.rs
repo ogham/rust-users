@@ -674,6 +674,11 @@ pub fn get_effective_groupname() -> Option<OsString> {
 ///
 /// - [`getgroups`](https://docs.rs/libc/*/libc/fn.getgroups.html)
 ///
+/// # Errors
+///
+/// This function will return `Err` when an I/O error occurs during the
+/// `getgroups` call.
+///
 /// # Examples
 ///
 /// ```no_run
@@ -698,8 +703,8 @@ pub fn group_access_list() -> io::Result<Vec<Group>> {
     }
     else {
         let mut groups = buff.into_iter()
-                                     .filter_map(|i| get_group_by_gid(i))
-                                     .collect::<Vec<_>>();
+                             .filter_map(|i| get_group_by_gid(i))
+                             .collect::<Vec<_>>();
         groups.dedup_by_key(|i| i.gid());
         Ok(groups)
     }

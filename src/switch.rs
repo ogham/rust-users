@@ -24,6 +24,11 @@ extern {
 ///
 /// - [`setuid`](https://docs.rs/libc/*/libc/fn.setuid.html)
 ///
+/// # Errors
+///
+/// This function will return `Err` when an I/O error occurs during the
+/// `setuid` call.
+///
 /// # Examples
 ///
 /// ```no_run
@@ -49,6 +54,11 @@ pub fn set_current_uid(uid: uid_t) -> io::Result<()> {
 /// # libc functions used
 ///
 /// - [`setgid`](https://docs.rs/libc/*/libc/fn.setgid.html)
+///
+/// # Errors
+///
+/// This function will return `Err` when an I/O error occurs during the
+/// `setgid` call.
 ///
 /// # Examples
 ///
@@ -76,6 +86,11 @@ pub fn set_current_gid(gid: gid_t) -> io::Result<()> {
 ///
 /// - [`seteuid`](https://docs.rs/libc/*/libc/fn.seteuid.html)
 ///
+/// # Errors
+///
+/// This function will return `Err` when an I/O error occurs during the
+/// `seteuid` call.
+///
 /// # Examples
 ///
 /// ```no_run
@@ -102,6 +117,11 @@ pub fn set_effective_uid(uid: uid_t) -> io::Result<()> {
 ///
 /// - [`setegid`](https://docs.rs/libc/*/libc/fn.setegid.html)
 ///
+/// # Errors
+///
+/// This function will return `Err` when an I/O error occurs during the
+/// `setegid` call.
+///
 /// # Examples
 ///
 /// ```no_run
@@ -126,7 +146,12 @@ pub fn set_effective_gid(gid: gid_t) -> io::Result<()> {
 ///
 /// # libc functions used
 ///
-/// - `setreuid`
+/// - [`setreuid`](https://docs.rs/libc/*/libc/fn.setreuid.html)
+///
+/// # Errors
+///
+/// This function will return `Err` when an I/O error occurs during the
+/// `setreuid` call.
 ///
 /// # Examples
 ///
@@ -152,7 +177,12 @@ pub fn set_both_uid(ruid: uid_t, euid: uid_t) -> io::Result<()> {
 ///
 /// # libc functions used
 ///
-/// - `setregid`
+/// - [`setregid`](https://docs.rs/libc/*/libc/fn.setregid.html)
+///
+/// # Errors
+///
+/// This function will return `Err` when an I/O error occurs during the
+/// `setregid` call.
 ///
 /// # Examples
 ///
@@ -199,6 +229,16 @@ impl Drop for SwitchUserGuard {
 ///   `POS36-C`).
 /// - This function will panic upon failing to set either walue, so the
 ///   program does not continue executing with too many privileges.
+///
+/// # libc functions used
+///
+/// - [`seteuid`](https://docs.rs/libc/*/libc/fn.seteuid.html)
+/// - [`setegid`](https://docs.rs/libc/*/libc/fn.setegid.html)
+///
+/// # Errors
+///
+/// This function will return `Err` when an I/O error occurs during either
+/// the `seteuid` or `setegid` calls.
 ///
 /// # Examples
 ///
