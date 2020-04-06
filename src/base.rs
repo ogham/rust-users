@@ -949,7 +949,7 @@ pub mod os {
         impl UserExtras {
             /// Extract the OS-specific fields from the C `passwd` struct that
             /// we just read.
-            pub unsafe fn from_passwd(passwd: c_passwd) -> Self {
+            pub(crate) unsafe fn from_passwd(passwd: c_passwd) -> Self {
                 #[cfg(target_os = "android")]
                 {
                     Default::default()
@@ -1009,7 +1009,7 @@ pub mod os {
         impl GroupExtras {
             /// Extract the OS-specific fields from the C `group` struct that
             /// we just read.
-            pub unsafe fn from_struct(group: c_group) -> Self {
+            pub(crate) unsafe fn from_struct(group: c_group) -> Self {
                 Self { members: members(group.gr_mem) }
             }
         }
@@ -1055,7 +1055,7 @@ pub mod os {
         impl UserExtras {
             /// Extract the OS-specific fields from the C `passwd` struct that
             /// we just read.
-            pub unsafe fn from_passwd(passwd: c_passwd) -> Self {
+            pub(crate) unsafe fn from_passwd(passwd: c_passwd) -> Self {
                 Self {
                     change: passwd.pw_change,
                     expire: passwd.pw_expire,
