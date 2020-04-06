@@ -189,57 +189,52 @@ impl Users for UsersCache {
     fn get_user_by_uid(&self, uid: uid_t) -> Option<Arc<User>> {
         let mut users_forward = self.users.forward.borrow_mut();
 
-        match users_forward.entry(uid) {
-            Vacant(entry) => {
-                match super::get_user_by_uid(uid) {
-                    Some(user) => {
-                        let newsername = user.name_arc.clone();
-                        let mut users_backward = self.users.backward.borrow_mut();
-                        users_backward.insert(newsername, Some(uid));
+        let entry = match users_forward.entry(uid) {
+            Vacant(e) => e,
+            Occupied(e) => return e.get().clone(),
+        };
 
-                        let user_arc = Arc::new(user);
-                        entry.insert(Some(user_arc.clone()));
-                        Some(user_arc)
-                    },
-                    None => {
-                        entry.insert(None);
-                        None
-                    }
-                }
-            },
-            Occupied(entry) => entry.get().clone(),
+        if let Some(user) = super::get_user_by_uid(uid) {
+            let newsername = user.name_arc.clone();
+            let mut users_backward = self.users.backward.borrow_mut();
+            users_backward.insert(newsername, Some(uid));
+
+            let user_arc = Arc::new(user);
+            entry.insert(Some(user_arc.clone()));
+            Some(user_arc)
+        }
+        else {
+            entry.insert(None);
+            None
         }
     }
 
     fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(&self, username: &S) -> Option<Arc<User>> {
         let mut users_backward = self.users.backward.borrow_mut();
 
-        match users_backward.entry(Arc::new(username.into())) {
-            Vacant(entry) => {
-                match super::get_user_by_name(username) {
-                    Some(user) => {
-                        let uid = user.uid();
-                        let user_arc = Arc::new(user);
-
-                        let mut users_forward = self.users.forward.borrow_mut();
-                        users_forward.insert(uid, Some(user_arc.clone()));
-                        entry.insert(Some(uid));
-
-                        Some(user_arc)
-                    },
-                    None => {
-                        entry.insert(None);
-                        None
-                    }
-                }
-            },
-            Occupied(entry) => match *entry.get() {
-                Some(uid) => {
+        let entry = match users_backward.entry(Arc::new(username.into())) {
+            Vacant(e) => e,
+            Occupied(e) => {
+                return (*e.get()).and_then(|uid| {
                     let users_forward = self.users.forward.borrow_mut();
                     users_forward[&uid].clone()
-                }
-                None => None,
+                });
             }
+        };
+
+        if let Some(user) = super::get_user_by_name(username) {
+            let uid = user.uid();
+            let user_arc = Arc::new(user);
+
+            let mut users_forward = self.users.forward.borrow_mut();
+            users_forward.insert(uid, Some(user_arc.clone()));
+            entry.insert(Some(uid));
+
+            Some(user_arc)
+        }
+        else {
+            entry.insert(None);
+            None
         }
     }
 
@@ -275,59 +270,52 @@ impl Groups for UsersCache {
     fn get_group_by_gid(&self, gid: gid_t) -> Option<Arc<Group>> {
         let mut groups_forward = self.groups.forward.borrow_mut();
 
-        match groups_forward.entry(gid) {
-            Vacant(entry) => {
-                let group = super::get_group_by_gid(gid);
-                match group {
-                    Some(group) => {
-                        let new_group_name = group.name_arc.clone();
-                        let mut groups_backward = self.groups.backward.borrow_mut();
-                        groups_backward.insert(new_group_name, Some(gid));
+        let entry = match groups_forward.entry(gid) {
+            Vacant(e) => e,
+            Occupied(e) => return e.get().clone(),
+        };
 
-                        let group_arc = Arc::new(group);
-                        entry.insert(Some(group_arc.clone()));
-                        Some(group_arc)
-                    },
-                    None => {
-                        entry.insert(None);
-                        None
-                    }
-                }
-            },
-            Occupied(entry) => entry.get().clone(),
+        if let Some(group) = super::get_group_by_gid(gid) {
+            let new_group_name = group.name_arc.clone();
+            let mut groups_backward = self.groups.backward.borrow_mut();
+            groups_backward.insert(new_group_name, Some(gid));
+
+            let group_arc = Arc::new(group);
+            entry.insert(Some(group_arc.clone()));
+            Some(group_arc)
+        }
+        else {
+            entry.insert(None);
+            None
         }
     }
 
     fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(&self, group_name: &S) -> Option<Arc<Group>> {
         let mut groups_backward = self.groups.backward.borrow_mut();
 
-        match groups_backward.entry(Arc::new(group_name.into())) {
-            Vacant(entry) => {
-                let user = super::get_group_by_name(group_name);
-                match user {
-                    Some(group) => {
-                        let group_arc = Arc::new(group.clone());
-                        let gid = group.gid();
-
-                        let mut groups_forward = self.groups.forward.borrow_mut();
-                        groups_forward.insert(gid, Some(group_arc.clone()));
-                        entry.insert(Some(gid));
-
-                        Some(group_arc)
-                    },
-                    None => {
-                        entry.insert(None);
-                        None
-                    }
-                }
-            },
-            Occupied(entry) => match *entry.get() {
-                Some(gid) => {
+        let entry = match groups_backward.entry(Arc::new(group_name.into())) {
+            Vacant(e) => e,
+            Occupied(e) => {
+                return (*e.get()).and_then(|gid| {
                     let groups_forward = self.groups.forward.borrow_mut();
                     groups_forward[&gid].as_ref().cloned()
-                }
-                None => None,
+                });
             }
+        };
+
+        if let Some(group) = super::get_group_by_name(group_name) {
+            let group_arc = Arc::new(group.clone());
+            let gid = group.gid();
+
+            let mut groups_forward = self.groups.forward.borrow_mut();
+            groups_forward.insert(gid, Some(group_arc.clone()));
+            entry.insert(Some(gid));
+
+            Some(group_arc)
+        }
+        else {
+            entry.insert(None);
+            None
         }
     }
 
