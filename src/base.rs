@@ -251,6 +251,9 @@ unsafe fn from_raw_buf(p: *const c_char) -> OsString {
 
 /// Reads data from the `c_passwd` and returns it as a `User`.
 unsafe fn passwd_to_user(passwd: c_passwd) -> User {
+    #[cfg(feature = "logging")]
+    debug!("Loading user with uid {}", passwd.pw_uid);
+
     let name = Arc::new(from_raw_buf(passwd.pw_name));
 
     User {
@@ -263,6 +266,9 @@ unsafe fn passwd_to_user(passwd: c_passwd) -> User {
 
 /// Reads data from the `c_group` and returns it as a `Group`.
 unsafe fn struct_to_group(group: c_group) -> Group {
+    #[cfg(feature = "logging")]
+    debug!("Loading group with gid {}", group.gr_gid);
+
     let name = Arc::new(from_raw_buf(group.gr_name));
 
     Group {
