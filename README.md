@@ -1,6 +1,7 @@
 # rust-users [![users on crates.io](http://meritbadge.herokuapp.com/users)](https://crates.io/crates/users) [![Build status](https://travis-ci.org/ogham/rust-users.svg?branch=master)](https://travis-ci.org/ogham/rust-users)
 
-This is a library for getting information on Unix users and groups. It supports getting the system users and groups, storing them in a cache, and creating your own mock tables.
+This is a library for accessing Unix users and groups.
+It supports getting the system users and groups, storing them in a cache, and creating your own mock tables.
 
 ### [View the Rustdoc](https://docs.rs/users)
 

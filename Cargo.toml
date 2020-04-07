@@ -1,9 +1,10 @@
 [package]
 name = "users"
-description = "Library for getting information on Unix users and groups"
+description = "Library for accessing Unix users and groups"
 
-authors = [ "Benjamin Sago <ogham@bsago.me>" ]
-documentation = "https://docs.rs/users/users/"
+authors = ["Benjamin Sago <ogham@bsago.me>"]
+exclude = ["/README.md", "/LICENCE", "/.rustfmt.toml", "/.travis.yml"]
+documentation = "https://docs.rs/users/"
 repository = "https://github.com/ogham/rust-users"
 license = "MIT"
 readme = "README.md"
@@ -16,13 +17,12 @@ mock = []
 logging = ["log"]
 
 [dependencies.libc]
-version = "0.2.50"
+version = "0.2"
 
 [dependencies.log]
 version = "0.4"
 optional = true
 default_features = false
-
 
 [dev_dependencies.env_logger]
 version = "0.7"
