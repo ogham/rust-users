@@ -8,7 +8,7 @@ It supports getting the system users and groups, storing them in a cache, and cr
 
 # Installation
 
-This crate works with [Cargo](http://crates.io). Add the following to your `Cargo.toml` dependencies section:
+This crate works with [Cargo](https://crates.io). Add the following to your `Cargo.toml` dependencies section:
 
 ```toml
 [dependencies]

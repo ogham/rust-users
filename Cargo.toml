@@ -3,11 +3,11 @@ name = "users"
 description = "Library for accessing Unix users and groups"
 
 authors = ["Benjamin Sago <ogham@bsago.me>"]
-exclude = ["/README.md", "/LICENCE", "/.rustfmt.toml", "/.travis.yml"]
 documentation = "https://docs.rs/users/"
-repository = "https://github.com/ogham/rust-users"
+exclude = ["/README.md", "/LICENCE", "/.rustfmt.toml", "/.travis.yml"]
 license = "MIT"
 readme = "README.md"
+repository = "https://github.com/ogham/rust-users"
 version = "0.10.0"
 
 [features]
