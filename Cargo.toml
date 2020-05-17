@@ -4,7 +4,7 @@ description = "Library for accessing Unix users and groups"
 
 authors = ["Benjamin Sago <ogham@bsago.me>"]
 documentation = "https://docs.rs/users/"
-exclude = ["/README.md", "/LICENCE", "/.rustfmt.toml", "/.travis.yml"]
+exclude = ["/.rustfmt.toml", "/.travis.yml"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/ogham/rust-users"
