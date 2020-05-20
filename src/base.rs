@@ -322,14 +322,22 @@ unsafe fn members(groups: *mut *mut c_char) -> Vec<OsString> {
 /// ```
 pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
     let mut passwd = unsafe { mem::zeroed::<c_passwd>() };
-    let mut buf = vec![0; 2048];  // TODO: Retry with larger buffer sizes
+    let mut buf = vec![0; 2048];
     let mut result = ptr::null_mut::<c_passwd>();
 
     #[cfg(feature = "logging")]
     debug!("Running getpwuid_r for user #{}", uid);
 
-    unsafe {
-        libc::getpwuid_r(uid, &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result);
+    loop {
+        let r = unsafe {
+            libc::getpwuid_r(uid, &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result)
+        };
+
+        if r != libc::ERANGE {
+            break;
+        }
+
+        buf.resize(buf.len() * 2, 0);
     }
 
     if result.is_null() {
@@ -375,14 +383,22 @@ pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> 
     };
 
     let mut passwd = unsafe { mem::zeroed::<c_passwd>() };
-    let mut buf = vec![0; 2048];  // TODO: Retry with larger buffer sizes
+    let mut buf = vec![0; 2048];
     let mut result = ptr::null_mut::<c_passwd>();
 
     #[cfg(feature = "logging")]
     debug!("Running getpwnam_r for user {:?}", username.as_ref());
 
-    unsafe {
-        libc::getpwnam_r(username.as_ptr(), &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result);
+    loop {
+        let r = unsafe {
+            libc::getpwnam_r(username.as_ptr(), &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result)
+        };
+
+        if r != libc::ERANGE {
+            break;
+        }
+
+        buf.resize(buf.len() * 2, 0);
     }
 
     if result.is_null() {
@@ -419,14 +435,22 @@ pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> 
 /// ```
 pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
     let mut passwd = unsafe { mem::zeroed::<c_group>() };
-    let mut buf = vec![0; 2048];  // TODO: Retry with larger buffer sizes
+    let mut buf = vec![0; 2048];
     let mut result = ptr::null_mut::<c_group>();
 
     #[cfg(feature = "logging")]
     debug!("Running getgruid_r for group #{}", gid);
 
-    unsafe {
-        libc::getgrgid_r(gid, &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result);
+    loop {
+        let r = unsafe {
+            libc::getgrgid_r(gid, &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result)
+        };
+
+        if r != libc::ERANGE {
+            break;
+        }
+
+        buf.resize(buf.len() * 2, 0);
     }
 
     if result.is_null() {
@@ -472,14 +496,22 @@ pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(groupname: &S) -> Option<Grou
     };
 
     let mut group = unsafe { mem::zeroed::<c_group>() };
-    let mut buf = vec![0; 2048];  // TODO: Retry with larger buffer sizes
+    let mut buf = vec![0; 2048];
     let mut result = ptr::null_mut::<c_group>();
 
     #[cfg(feature = "logging")]
     debug!("Running getgrnam_r for group {:?}", groupname.as_ref());
 
-    unsafe {
-        libc::getgrnam_r(groupname.as_ptr(), &mut group, buf.as_mut_ptr(), buf.len(), &mut result);
+    loop {
+        let r = unsafe {
+            libc::getgrnam_r(groupname.as_ptr(), &mut group, buf.as_mut_ptr(), buf.len(), &mut result)
+        };
+
+        if r != libc::ERANGE {
+            break;
+        }
+
+        buf.resize(buf.len() * 2, 0);
     }
 
     if result.is_null() {
