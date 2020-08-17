@@ -337,7 +337,8 @@ pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
             break;
         }
 
-        buf.resize(buf.len() * 2, 0);
+        let newsize = buf.len().checked_mul(2)?;
+        buf.resize(newsize, 0);
     }
 
     if result.is_null() {
@@ -398,7 +399,8 @@ pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> 
             break;
         }
 
-        buf.resize(buf.len() * 2, 0);
+        let newsize = buf.len().checked_mul(2)?;
+        buf.resize(newsize, 0);
     }
 
     if result.is_null() {
@@ -450,7 +452,8 @@ pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
             break;
         }
 
-        buf.resize(buf.len() * 2, 0);
+        let newsize = buf.len().checked_mul(2)?;
+        buf.resize(newsize, 0);
     }
 
     if result.is_null() {
@@ -511,7 +514,8 @@ pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(groupname: &S) -> Option<Grou
             break;
         }
 
-        buf.resize(buf.len() * 2, 0);
+        let newsize = buf.len().checked_mul(2)?;
+        buf.resize(newsize, 0);
     }
 
     if result.is_null() {
