@@ -191,6 +191,13 @@ impl UsersCache {
 }
 
 
+// TODO: stop using ‘Arc::from’ with entry API
+// The ‘get_*_by_name’ functions below create a new Arc before even testing if
+// the user exists in the cache, essentially creating an unnecessary Arc.
+// https://internals.rust-lang.org/t/pre-rfc-abandonning-morals-in-the-name-of-performance-the-raw-entry-api/7043/51
+// https://github.com/rust-lang/rfcs/pull/1769
+
+
 impl Users for UsersCache {
     fn get_user_by_uid(&self, uid: uid_t) -> Option<Arc<User>> {
         let mut users_forward = self.users.forward.borrow_mut();
