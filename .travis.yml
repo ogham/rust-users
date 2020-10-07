@@ -4,6 +4,16 @@ rust:
   - stable
   - beta
   - nightly
-matrix:
+
+jobs:
+  fast_finish: true
   allow_failures:
     - rust: nightly
+
+  include:
+    - name: 'Rust: test with all features'
+      rust: stable
+      install:
+        - cargo install cargo-hack
+      script:
+        - cargo hack test --feature-powerset --lib
