@@ -100,7 +100,7 @@ println!("The '{}' group has the ID {}", group.name(), group.gid());
 
 ## Logging
 
-The `logging` feature, which is on by default, uses the `log` crate to record all interactions with the operating system.
+The `logging` feature, which is on by default, uses the `log` crate to record all interactions with the operating system at Trace log level.
 
 
 ## Caveats
