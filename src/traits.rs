@@ -1,4 +1,4 @@
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::sync::Arc;
 
 use libc::{uid_t, gid_t};
@@ -19,13 +19,13 @@ pub trait Users {
     fn get_current_uid(&self) -> uid_t;
 
     /// Returns the username of the user running the process.
-    fn get_current_username(&self) -> Option<Arc<OsString>>;
+    fn get_current_username(&self) -> Option<Arc<OsStr>>;
 
     /// Returns the effective user id.
     fn get_effective_uid(&self) -> uid_t;
 
     /// Returns the effective username.
-    fn get_effective_username(&self) -> Option<Arc<OsString>>;
+    fn get_effective_username(&self) -> Option<Arc<OsStr>>;
 }
 
 /// Trait for producers of groups.
@@ -41,11 +41,11 @@ pub trait Groups {
     fn get_current_gid(&self) -> gid_t;
 
     /// Returns the group name of the user running the process.
-    fn get_current_groupname(&self) -> Option<Arc<OsString>>;
+    fn get_current_groupname(&self) -> Option<Arc<OsStr>>;
 
     /// Returns the effective group id.
     fn get_effective_gid(&self) -> gid_t;
 
     /// Returns the effective group name.
-    fn get_effective_groupname(&self) -> Option<Arc<OsString>>;
+    fn get_effective_groupname(&self) -> Option<Arc<OsStr>>;
 }

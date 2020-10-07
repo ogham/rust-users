@@ -88,7 +88,7 @@ use libc::{uid_t, gid_t};
 use std::cell::{Cell, RefCell};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::sync::Arc;
 
 use base::{User, Group, all_users};
@@ -117,7 +117,7 @@ pub struct UsersCache {
 /// `User` struct!
 struct BiMap<K, V> {
     forward:  RefCell< HashMap<K, Option<Arc<V>>> >,
-    backward: RefCell< HashMap<Arc<OsString>, Option<K>> >,
+    backward: RefCell< HashMap<Arc<OsStr>, Option<K>> >,
 }
 
 
@@ -218,7 +218,7 @@ impl Users for UsersCache {
     fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(&self, username: &S) -> Option<Arc<User>> {
         let mut users_backward = self.users.backward.borrow_mut();
 
-        let entry = match users_backward.entry(Arc::new(username.into())) {
+        let entry = match users_backward.entry(Arc::from(username.as_ref())) {
             Vacant(e) => e,
             Occupied(e) => {
                 return (*e.get()).and_then(|uid| {
@@ -252,7 +252,7 @@ impl Users for UsersCache {
         })
     }
 
-    fn get_current_username(&self) -> Option<Arc<OsString>> {
+    fn get_current_username(&self) -> Option<Arc<OsStr>> {
         let uid = self.get_current_uid();
         self.get_user_by_uid(uid).map(|u| Arc::clone(&u.name_arc))
     }
@@ -265,7 +265,7 @@ impl Users for UsersCache {
         })
     }
 
-    fn get_effective_username(&self) -> Option<Arc<OsString>> {
+    fn get_effective_username(&self) -> Option<Arc<OsStr>> {
         let uid = self.get_effective_uid();
         self.get_user_by_uid(uid).map(|u| Arc::clone(&u.name_arc))
     }
@@ -299,7 +299,7 @@ impl Groups for UsersCache {
     fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(&self, group_name: &S) -> Option<Arc<Group>> {
         let mut groups_backward = self.groups.backward.borrow_mut();
 
-        let entry = match groups_backward.entry(Arc::new(group_name.into())) {
+        let entry = match groups_backward.entry(Arc::from(group_name.as_ref())) {
             Vacant(e) => e,
             Occupied(e) => {
                 return (*e.get()).and_then(|gid| {
@@ -333,7 +333,7 @@ impl Groups for UsersCache {
         })
     }
 
-    fn get_current_groupname(&self) -> Option<Arc<OsString>> {
+    fn get_current_groupname(&self) -> Option<Arc<OsStr>> {
         let gid = self.get_current_gid();
         self.get_group_by_gid(gid).map(|g| Arc::clone(&g.name_arc))
     }
@@ -346,7 +346,7 @@ impl Groups for UsersCache {
         })
     }
 
-    fn get_effective_groupname(&self) -> Option<Arc<OsString>> {
+    fn get_effective_groupname(&self) -> Option<Arc<OsStr>> {
         let gid = self.get_effective_gid();
         self.get_group_by_gid(gid).map(|g| Arc::clone(&g.name_arc))
     }

@@ -55,7 +55,7 @@ pub struct User {
     uid: uid_t,
     primary_group: gid_t,
     extras: os::UserExtras,
-    pub(crate) name_arc: Arc<OsString>,
+    pub(crate) name_arc: Arc<OsStr>,
 }
 
 impl User {
@@ -74,7 +74,7 @@ impl User {
     /// let user = User::new(501, "stevedore", 100);
     /// ```
     pub fn new<S: AsRef<OsStr> + ?Sized>(uid: uid_t, name: &S, primary_group: gid_t) -> Self {
-        let name_arc = Arc::new(name.into());
+        let name_arc = Arc::from(name.as_ref());
         let extras = os::UserExtras::default();
 
         Self { uid, name_arc, primary_group, extras }
@@ -106,7 +106,7 @@ impl User {
     /// assert_eq!(user.name(), OsStr::new("stevedore"));
     /// ```
     pub fn name(&self) -> &OsStr {
-        &**self.name_arc
+        &*self.name_arc
     }
 
     /// Returns the ID of this user’s primary group.
@@ -169,7 +169,7 @@ impl fmt::Debug for User {
 pub struct Group {
     gid: gid_t,
     extras: os::GroupExtras,
-    pub(crate) name_arc: Arc<OsString>,
+    pub(crate) name_arc: Arc<OsStr>,
 }
 
 impl Group {
@@ -188,7 +188,7 @@ impl Group {
     /// let group = Group::new(102, "database");
     /// ```
     pub fn new<S: AsRef<OsStr> + ?Sized>(gid: gid_t, name: &S) -> Self {
-        let name_arc = Arc::new(name.into());
+        let name_arc = Arc::from(name.as_ref());
         let extras = os::GroupExtras::default();
 
         Self { gid, name_arc, extras }
@@ -220,7 +220,7 @@ impl Group {
     /// assert_eq!(group.name(), OsStr::new("database"));
     /// ```
     pub fn name(&self) -> &OsStr {
-        &**self.name_arc
+        &*self.name_arc
     }
 }
 
@@ -240,13 +240,16 @@ impl fmt::Debug for Group {
 }
 
 
-/// Reads data from a `*char` field in `c_passwd` or `g_group` into an
-/// `OsString` for use in a user or group value.
+/// Reads data from a `*char` field in `c_passwd` or `g_group`. The return
+/// type will be an `Arc<OsStr>` if the text is meant to be shared in a cache,
+/// or a plain `OsString` if it’s not.
 ///
 /// The underlying buffer is managed by the C library, not by us, so we *need*
 /// to move data out of it before the next user gets read.
-unsafe fn from_raw_buf(p: *const c_char) -> OsString {
-    OsStr::from_bytes(CStr::from_ptr(p).to_bytes()).to_os_string()
+unsafe fn from_raw_buf<'a, T>(p: *const c_char) -> T
+where T: From<&'a OsStr>
+{
+    T::from(OsStr::from_bytes(CStr::from_ptr(p).to_bytes()))
 }
 
 /// Reads data from the `c_passwd` and returns it as a `User`.
@@ -254,7 +257,7 @@ unsafe fn passwd_to_user(passwd: c_passwd) -> User {
     #[cfg(feature = "logging")]
     trace!("Loading user with uid {}", passwd.pw_uid);
 
-    let name = Arc::new(from_raw_buf(passwd.pw_name));
+    let name = from_raw_buf(passwd.pw_name);
 
     User {
         uid:           passwd.pw_uid,
@@ -269,7 +272,7 @@ unsafe fn struct_to_group(group: c_group) -> Group {
     #[cfg(feature = "logging")]
     trace!("Loading group with gid {}", group.gr_gid);
 
-    let name = Arc::new(from_raw_buf(group.gr_name));
+    let name = from_raw_buf(group.gr_name);
 
     Group {
         gid:      group.gr_gid,
@@ -575,7 +578,9 @@ pub fn get_current_uid() -> uid_t {
 /// ```
 pub fn get_current_username() -> Option<OsString> {
     let uid = get_current_uid();
-    get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name_arc).unwrap())
+    let user = get_user_by_uid(uid)?;
+
+    Some(OsString::from(&*user.name_arc))
 }
 
 /// Returns the user ID for the effective user running the process.
@@ -617,7 +622,9 @@ pub fn get_effective_uid() -> uid_t {
 /// ```
 pub fn get_effective_username() -> Option<OsString> {
     let uid = get_effective_uid();
-    get_user_by_uid(uid).map(|u| Arc::try_unwrap(u.name_arc).unwrap())
+    let user = get_user_by_uid(uid)?;
+
+    Some(OsString::from(&*user.name_arc))
 }
 
 /// Returns the group ID for the user running the process.
@@ -659,7 +666,9 @@ pub fn get_current_gid() -> gid_t {
 /// ```
 pub fn get_current_groupname() -> Option<OsString> {
     let gid = get_current_gid();
-    get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
+    let group = get_group_by_gid(gid)?;
+
+    Some(OsString::from(&*group.name_arc))
 }
 
 /// Returns the group ID for the effective user running the process.
@@ -701,7 +710,9 @@ pub fn get_effective_gid() -> gid_t {
 /// ```
 pub fn get_effective_groupname() -> Option<OsString> {
     let gid = get_effective_gid();
-    get_group_by_gid(gid).map(|g| Arc::try_unwrap(g.name_arc).unwrap())
+    let group = get_group_by_gid(gid)?;
+
+    Some(OsString::from(&*group.name_arc))
 }
 
 /// Returns the group access list for the current process.
@@ -992,9 +1003,9 @@ pub mod os {
                 }
                 #[cfg(not(target_os = "android"))]
                 {
-                    let home_dir = from_raw_buf(passwd.pw_dir).into();
-                    let shell    = from_raw_buf(passwd.pw_shell).into();
-                    let password = from_raw_buf(passwd.pw_passwd);
+                    let home_dir = from_raw_buf::<OsString>(passwd.pw_dir).into();
+                    let shell    = from_raw_buf::<OsString>(passwd.pw_shell).into();
+                    let password = from_raw_buf::<OsString>(passwd.pw_passwd);
 
                     Self { home_dir, shell, password }
                 }
