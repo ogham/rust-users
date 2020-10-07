@@ -1,4 +1,11 @@
-# rust-users [![users on crates.io](http://meritbadge.herokuapp.com/users)](https://crates.io/crates/users) [![Build status](https://travis-ci.org/ogham/rust-users.svg?branch=master)](https://travis-ci.org/ogham/rust-users)
+# rust-users [![users on crates.io][crates-badge]][crates-url] [![Minimum Rust Version 1.31.0][rustc-badge]][rustc-url] [![Build status][travis-badge]][travis-url]
+
+[crates-badge]: https://meritbadge.herokuapp.com/users
+[crates-url]: https://crates.io/crates/users
+[travis-badge]: https://travis-ci.org/ogham/rust-users.svg?branch=master
+[travis-url]: https://travis-ci.org/github/ogham/rust-users
+[rustc-badge]: https://img.shields.io/badge/rustc-1.31+-lightgray.svg
+[rustc-url]: https://blog.rust-lang.org/2018/12/06/Rust-1.31-and-rust-2018.html
 
 This is a library for accessing Unix users and groups.
 It supports getting the system users and groups, storing them in a cache, and creating your own mock tables.
@@ -15,7 +22,7 @@ This crate works with [Cargo](https://crates.io). Add the following to your `Car
 users = "0.10"
 ```
 
-The earliest version of Rust that this crate is tested against is [Rust v1.31.0](https://blog.rust-lang.org/2018/12/06/Rust-1.31-and-rust-2018.html).
+The earliest version of Rust that this crate is tested against is [Rust v1.31.0][rustc-url].
 
 
 # Usage
