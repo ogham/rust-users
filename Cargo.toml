@@ -8,7 +8,7 @@ exclude = ["/.rustfmt.toml", "/.travis.yml"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/ogham/rust-users"
-version = "0.10.0"
+version = "0.11.0"
 
 [features]
 default = ["cache", "mock", "logging"]
