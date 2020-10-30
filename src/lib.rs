@@ -135,7 +135,9 @@ pub use base::{get_current_uid, get_current_username};
 pub use base::{get_effective_uid, get_effective_username};
 pub use base::{get_current_gid, get_current_groupname};
 pub use base::{get_effective_gid, get_effective_groupname};
-pub use base::{get_user_groups, group_access_list};
+#[cfg(not(any(target_os = "illumos", target_os = "solaris")))]
+pub use base::{get_user_groups};
+pub use base::{group_access_list};
 pub use base::{all_users};
 
 #[cfg(feature = "cache")]
