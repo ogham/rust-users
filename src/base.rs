@@ -749,10 +749,12 @@ pub fn group_access_list() -> io::Result<Vec<Group>> {
         Err(io::Error::last_os_error())
     }
     else {
-        let mut groups = buff.into_iter()
+        buff.truncate(res as usize);
+        buff.sort_unstable();
+        buff.dedup();
+        let groups = buff.into_iter()
                              .filter_map(get_group_by_gid)
                              .collect::<Vec<_>>();
-        groups.dedup_by_key(|i| i.gid());
         Ok(groups)
     }
 }
@@ -800,7 +802,11 @@ pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Op
         None
     }
     else {
+        buff.truncate(count as usize);
+        buff.sort_unstable();
         buff.dedup();
+        // allow trivial cast: on macos i is i32, on linux it's already gid_t
+        #[allow(trivial_numeric_casts)]
         buff.into_iter()
             .filter_map(|i| get_group_by_gid(i as gid_t))
             .collect::<Vec<_>>()
