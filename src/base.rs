@@ -31,8 +31,8 @@
 
 use std::ffi::{CStr, CString, OsStr, OsString};
 use std::fmt;
-use std::mem;
 use std::io;
+use std::mem;
 use std::os::unix::ffi::OsStrExt;
 use std::ptr;
 use std::sync::Arc;
@@ -42,10 +42,9 @@ extern crate log;
 #[cfg(feature = "logging")]
 use self::log::trace;
 
-use libc::{c_char, uid_t, gid_t, c_int};
-use libc::passwd as c_passwd;
 use libc::group as c_group;
-
+use libc::passwd as c_passwd;
+use libc::{c_char, c_int, gid_t, uid_t};
 
 /// Information about a particular user.
 ///
@@ -59,7 +58,6 @@ pub struct User {
 }
 
 impl User {
-
     /// Create a new `User` with the given user ID, name, and primary
     /// group ID, with the rest of the fields filled with dummy values.
     ///
@@ -77,7 +75,12 @@ impl User {
         let name_arc = Arc::from(name.as_ref());
         let extras = os::UserExtras::default();
 
-        Self { uid, name_arc, primary_group, extras }
+        Self {
+            uid,
+            name_arc,
+            primary_group,
+            extras,
+        }
     }
 
     /// Returns this user’s ID.
@@ -149,18 +152,16 @@ impl fmt::Debug for User {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if f.alternate() {
             f.debug_struct("User")
-             .field("uid", &self.uid)
-             .field("name_arc", &self.name_arc)
-             .field("primary_group", &self.primary_group)
-             .field("extras", &self.extras)
-             .finish()
-        }
-        else {
+                .field("uid", &self.uid)
+                .field("name_arc", &self.name_arc)
+                .field("primary_group", &self.primary_group)
+                .field("extras", &self.extras)
+                .finish()
+        } else {
             write!(f, "User({}, {})", self.uid(), self.name().to_string_lossy())
         }
     }
 }
-
 
 /// Information about a particular group.
 ///
@@ -173,7 +174,6 @@ pub struct Group {
 }
 
 impl Group {
-
     /// Create a new `Group` with the given group ID and name, with the
     /// rest of the fields filled in with dummy values.
     ///
@@ -191,7 +191,11 @@ impl Group {
         let name_arc = Arc::from(name.as_ref());
         let extras = os::GroupExtras::default();
 
-        Self { gid, name_arc, extras }
+        Self {
+            gid,
+            name_arc,
+            extras,
+        }
     }
 
     /// Returns this group’s ID.
@@ -228,17 +232,20 @@ impl fmt::Debug for Group {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if f.alternate() {
             f.debug_struct("Group")
-             .field("gid", &self.gid)
-             .field("name_arc", &self.name_arc)
-             .field("extras", &self.extras)
-             .finish()
-        }
-        else {
-            write!(f, "Group({}, {})", self.gid(), self.name().to_string_lossy())
+                .field("gid", &self.gid)
+                .field("name_arc", &self.name_arc)
+                .field("extras", &self.extras)
+                .finish()
+        } else {
+            write!(
+                f,
+                "Group({}, {})",
+                self.gid(),
+                self.name().to_string_lossy()
+            )
         }
     }
 }
-
 
 /// Reads data from a `*char` field in `c_passwd` or `g_group`. The return
 /// type will be an `Arc<OsStr>` if the text is meant to be shared in a cache,
@@ -247,7 +254,8 @@ impl fmt::Debug for Group {
 /// The underlying buffer is managed by the C library, not by us, so we *need*
 /// to move data out of it before the next user gets read.
 unsafe fn from_raw_buf<'a, T>(p: *const c_char) -> T
-where T: From<&'a OsStr>
+where
+    T: From<&'a OsStr>,
 {
     T::from(OsStr::from_bytes(CStr::from_ptr(p).to_bytes()))
 }
@@ -260,10 +268,10 @@ unsafe fn passwd_to_user(passwd: c_passwd) -> User {
     let name = from_raw_buf(passwd.pw_name);
 
     User {
-        uid:           passwd.pw_uid,
-        name_arc:      name,
+        uid: passwd.pw_uid,
+        name_arc: name,
         primary_group: passwd.pw_gid,
-        extras:        os::UserExtras::from_passwd(passwd),
+        extras: os::UserExtras::from_passwd(passwd),
     }
 }
 
@@ -275,9 +283,9 @@ unsafe fn struct_to_group(group: c_group) -> Group {
     let name = from_raw_buf(group.gr_name);
 
     Group {
-        gid:      group.gr_gid,
+        gid: group.gr_gid,
         name_arc: name,
-        extras:   os::GroupExtras::from_struct(group),
+        extras: os::GroupExtras::from_struct(group),
     }
 }
 
@@ -296,15 +304,13 @@ unsafe fn members(groups: *mut *mut c_char) -> Vec<OsString> {
 
         if username.is_null() || (*username).is_null() {
             break;
-        }
-        else {
+        } else {
             members.push(from_raw_buf(*username));
         }
     }
 
     members
 }
-
 
 /// Searches for a `User` with the given ID in the system’s user database.
 /// Returns it if one is found, otherwise returns `None`.
@@ -332,9 +338,8 @@ pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
     trace!("Running getpwuid_r for user #{}", uid);
 
     loop {
-        let r = unsafe {
-            libc::getpwuid_r(uid, &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result)
-        };
+        let r =
+            unsafe { libc::getpwuid_r(uid, &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result) };
 
         if r != libc::ERANGE {
             break;
@@ -378,7 +383,7 @@ pub fn get_user_by_uid(uid: uid_t) -> Option<User> {
 /// ```
 pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> {
     let username = match CString::new(username.as_ref().as_bytes()) {
-        Ok(u)  => u,
+        Ok(u) => u,
         Err(_) => {
             // The username that was passed in contained a null character,
             // which will match no usernames.
@@ -395,7 +400,13 @@ pub fn get_user_by_name<S: AsRef<OsStr> + ?Sized>(username: &S) -> Option<User> 
 
     loop {
         let r = unsafe {
-            libc::getpwnam_r(username.as_ptr(), &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result)
+            libc::getpwnam_r(
+                username.as_ptr(),
+                &mut passwd,
+                buf.as_mut_ptr(),
+                buf.len(),
+                &mut result,
+            )
         };
 
         if r != libc::ERANGE {
@@ -447,9 +458,8 @@ pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
     trace!("Running getgruid_r for group #{}", gid);
 
     loop {
-        let r = unsafe {
-            libc::getgrgid_r(gid, &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result)
-        };
+        let r =
+            unsafe { libc::getgrgid_r(gid, &mut passwd, buf.as_mut_ptr(), buf.len(), &mut result) };
 
         if r != libc::ERANGE {
             break;
@@ -493,7 +503,7 @@ pub fn get_group_by_gid(gid: gid_t) -> Option<Group> {
 /// ```
 pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(groupname: &S) -> Option<Group> {
     let groupname = match CString::new(groupname.as_ref().as_bytes()) {
-        Ok(u)  => u,
+        Ok(u) => u,
         Err(_) => {
             // The groupname that was passed in contained a null character,
             // which will match no usernames.
@@ -510,7 +520,13 @@ pub fn get_group_by_name<S: AsRef<OsStr> + ?Sized>(groupname: &S) -> Option<Grou
 
     loop {
         let r = unsafe {
-            libc::getgrnam_r(groupname.as_ptr(), &mut group, buf.as_mut_ptr(), buf.len(), &mut result)
+            libc::getgrnam_r(
+                groupname.as_ptr(),
+                &mut group,
+                buf.as_mut_ptr(),
+                buf.len(),
+                &mut result,
+            )
         };
 
         if r != libc::ERANGE {
@@ -741,17 +757,15 @@ pub fn group_access_list() -> io::Result<Vec<Group>> {
     #[cfg(feature = "logging")]
     trace!("Running getgroups");
 
-    let res = unsafe {
-        libc::getgroups(1024, buff.as_mut_ptr())
-    };
+    let res = unsafe { libc::getgroups(1024, buff.as_mut_ptr()) };
 
     if res < 0 {
         Err(io::Error::last_os_error())
-    }
-    else {
-        let mut groups = buff.into_iter()
-                             .filter_map(get_group_by_gid)
-                             .collect::<Vec<_>>();
+    } else {
+        let mut groups = buff
+            .into_iter()
+            .filter_map(get_group_by_gid)
+            .collect::<Vec<_>>();
         groups.dedup_by_key(|i| i.gid());
         Ok(groups)
     }
@@ -774,32 +788,32 @@ pub fn group_access_list() -> io::Result<Vec<Group>> {
 /// ```
 pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Option<Vec<Group>> {
     // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
-    #[cfg(all(unix, target_os="macos"))]
+    #[cfg(all(unix, any(target_os = "macos", target_os = "ios")))]
     let mut buff: Vec<i32> = vec![0; 1024];
-    #[cfg(all(unix, not(target_os="macos")))]
+    #[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
     let mut buff: Vec<gid_t> = vec![0; 1024];
 
     let name = CString::new(username.as_ref().as_bytes()).unwrap();
     let mut count = buff.len() as c_int;
 
     #[cfg(feature = "logging")]
-    trace!("Running getgrouplist for user {:?} and group #{}", username.as_ref(), gid);
+    trace!(
+        "Running getgrouplist for user {:?} and group #{}",
+        username.as_ref(),
+        gid
+    );
 
     // MacOS uses i32 instead of gid_t in getgrouplist for unknown reasons
-    #[cfg(all(unix, target_os="macos"))]
-    let res = unsafe {
-        libc::getgrouplist(name.as_ptr(), gid as i32, buff.as_mut_ptr(), &mut count)
-    };
+    #[cfg(all(unix, any(target_os = "macos", target_os = "ios")))]
+    let res =
+        unsafe { libc::getgrouplist(name.as_ptr(), gid as i32, buff.as_mut_ptr(), &mut count) };
 
-    #[cfg(all(unix, not(target_os="macos")))]
-    let res = unsafe {
-        libc::getgrouplist(name.as_ptr(), gid, buff.as_mut_ptr(), &mut count)
-    };
+    #[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
+    let res = unsafe { libc::getgrouplist(name.as_ptr(), gid, buff.as_mut_ptr(), &mut count) };
 
     if res < 0 {
         None
-    }
-    else {
+    } else {
         buff.dedup();
         buff.into_iter()
             .filter_map(|i| get_group_by_gid(i as gid_t))
@@ -807,8 +821,6 @@ pub fn get_user_groups<S: AsRef<OsStr> + ?Sized>(username: &S, gid: gid_t) -> Op
             .into()
     }
 }
-
-
 
 /// An iterator over every user present on the system.
 struct AllUsers;
@@ -850,7 +862,7 @@ struct AllUsers;
 ///     println!("User #{} ({:?})", user.uid(), user.name());
 /// }
 /// ```
-pub unsafe fn all_users() -> impl Iterator<Item=User> {
+pub unsafe fn all_users() -> impl Iterator<Item = User> {
     #[cfg(feature = "logging")]
     trace!("Running setpwent");
 
@@ -891,15 +903,12 @@ impl Iterator for AllUsers {
 
         if result.is_null() {
             None
-        }
-        else {
+        } else {
             let user = unsafe { passwd_to_user(result.read()) };
             Some(user)
         }
     }
 }
-
-
 
 /// OS-specific extensions to users and groups.
 ///
@@ -923,16 +932,25 @@ pub mod os {
     /// Although the `passwd` struct is common among Unix systems, its actual
     /// format can vary. See the definitions in the `base` module to check which
     /// fields are actually present.
-    #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd", target_os = "solaris"))]
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "android",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "freebsd",
+        target_os = "dragonfly",
+        target_os = "openbsd",
+        target_os = "netbsd",
+        target_os = "solaris"
+    ))]
     pub mod unix {
         use std::ffi::{OsStr, OsString};
         use std::path::{Path, PathBuf};
 
-        use super::super::{c_passwd, c_group, members, from_raw_buf, Group};
+        use super::super::{c_group, c_passwd, from_raw_buf, members, Group};
 
         /// Unix-specific extensions for `User`s.
         pub trait UserExt {
-
             /// Returns a path to this user’s home directory.
             fn home_dir(&self) -> &Path;
 
@@ -960,7 +978,6 @@ pub mod os {
 
         /// Unix-specific extensions for `Group`s.
         pub trait GroupExt {
-
             /// Returns a slice of the list of users that are in this group as
             /// their non-primary group.
             fn members(&self) -> &[OsString];
@@ -972,7 +989,6 @@ pub mod os {
         /// Unix-specific fields for `User`s.
         #[derive(Clone, Debug)]
         pub struct UserExtras {
-
             /// The path to the user’s home directory.
             pub home_dir: PathBuf,
 
@@ -987,7 +1003,7 @@ pub mod os {
             fn default() -> Self {
                 Self {
                     home_dir: "/var/empty".into(),
-                    shell:    "/bin/false".into(),
+                    shell: "/bin/false".into(),
                     password: "*".into(),
                 }
             }
@@ -1004,10 +1020,14 @@ pub mod os {
                 #[cfg(not(target_os = "android"))]
                 {
                     let home_dir = from_raw_buf::<OsString>(passwd.pw_dir).into();
-                    let shell    = from_raw_buf::<OsString>(passwd.pw_shell).into();
+                    let shell = from_raw_buf::<OsString>(passwd.pw_shell).into();
                     let password = from_raw_buf::<OsString>(passwd.pw_passwd);
 
-                    Self { home_dir, shell, password }
+                    Self {
+                        home_dir,
+                        shell,
+                        password,
+                    }
                 }
             }
         }
@@ -1048,7 +1068,6 @@ pub mod os {
         /// Unix-specific fields for `Group`s.
         #[derive(Clone, Default, Debug)]
         pub struct GroupExtras {
-
             /// Vector of usernames that are members of this group.
             pub members: Vec<OsString>,
         }
@@ -1057,7 +1076,9 @@ pub mod os {
             /// Extract the OS-specific fields from the C `group` struct that
             /// we just read.
             pub(crate) unsafe fn from_struct(group: c_group) -> Self {
-                Self { members: members(group.gr_mem) }
+                Self {
+                    members: members(group.gr_mem),
+                }
             }
         }
 
@@ -1077,17 +1098,23 @@ pub mod os {
     ///
     /// These platforms have `change` and `expire` fields in their `passwd`
     /// C structs.
-    #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd"))]
+    #[cfg(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "freebsd",
+        target_os = "dragonfly",
+        target_os = "openbsd",
+        target_os = "netbsd"
+    ))]
     pub mod bsd {
+        use super::super::{c_passwd, User};
+        use libc::time_t;
         use std::ffi::OsStr;
         use std::path::Path;
-        use libc::time_t;
-        use super::super::{c_passwd, User};
 
         /// BSD-specific fields for `User`s.
         #[derive(Clone, Debug)]
         pub struct UserExtras {
-
             /// Fields specific to Unix, rather than just BSD. (This struct is
             /// a superset, so it has to have all the other fields in it, too).
             pub extras: super::unix::UserExtras,
@@ -1142,7 +1169,6 @@ pub mod os {
 
         /// BSD-specific accessors for `User`s.
         pub trait UserExt {
-
             /// Returns this user’s password change timestamp.
             fn password_change_time(&self) -> time_t;
 
@@ -1172,7 +1198,14 @@ pub mod os {
     }
 
     /// Any extra fields on a `User` specific to the current platform.
-    #[cfg(any(target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd"))]
+    #[cfg(any(
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "freebsd",
+        target_os = "dragonfly",
+        target_os = "openbsd",
+        target_os = "netbsd"
+    ))]
     pub type UserExtras = bsd::UserExtras;
 
     /// Any extra fields on a `User` specific to the current platform.
@@ -1180,10 +1213,19 @@ pub mod os {
     pub type UserExtras = unix::UserExtras;
 
     /// Any extra fields on a `Group` specific to the current platform.
-    #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos", target_os = "freebsd", target_os = "dragonfly", target_os = "openbsd", target_os = "netbsd", target_os = "solaris"))]
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "android",
+        target_os = "macos",
+        target_os = "ios",
+        target_os = "freebsd",
+        target_os = "dragonfly",
+        target_os = "openbsd",
+        target_os = "netbsd",
+        target_os = "solaris"
+    ))]
     pub type GroupExtras = unix::GroupExtras;
 }
-
 
 #[cfg(test)]
 mod test {
@@ -1197,7 +1239,10 @@ mod test {
     #[test]
     fn username() {
         let uid = get_current_uid();
-        assert_eq!(&*get_current_username().unwrap(), &*get_user_by_uid(uid).unwrap().name());
+        assert_eq!(
+            &*get_current_username().unwrap(),
+            &*get_user_by_uid(uid).unwrap().name()
+        );
     }
 
     #[test]
@@ -1223,8 +1268,12 @@ mod test {
         let user = get_user_by_uid(uid).unwrap();
         // Not a real test but can be used to verify correct results
         // Use with --nocapture on test executable to show output
-        println!("HOME={:?}, SHELL={:?}, PASSWD={:?}",
-            user.home_dir(), user.shell(), user.password());
+        println!(
+            "HOME={:?}, SHELL={:?}, PASSWD={:?}",
+            user.home_dir(),
+            user.shell(),
+            user.password()
+        );
     }
 
     #[test]
