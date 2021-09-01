@@ -1,6 +1,6 @@
 # rust-users [![users on crates.io][crates-badge]][crates-url] [![Minimum Rust Version 1.31.0][rustc-badge]][rustc-url] [![Build status][travis-badge]][travis-url]
 
-[crates-badge]: https://meritbadge.herokuapp.com/users
+[crates-badge]: https://img.shields.io/crates/v/users.svg
 [crates-url]: https://crates.io/crates/users
 [travis-badge]: https://travis-ci.org/ogham/rust-users.svg?branch=master
 [travis-url]: https://travis-ci.org/github/ogham/rust-users
