@@ -136,7 +136,7 @@ pub use base::{get_effective_uid, get_effective_username};
 pub use base::{get_current_gid, get_current_groupname};
 pub use base::{get_effective_gid, get_effective_groupname};
 pub use base::{get_user_groups, group_access_list};
-pub use base::{all_users};
+pub use base::{all_users, all_groups};
 
 #[cfg(feature = "cache")]
 pub mod cache;

@@ -900,6 +900,96 @@ impl Iterator for AllUsers {
 }
 
 
+/// An iterator over every group present on the system.
+struct AllGroups;
+
+/// Creates a new iterator over every group present on the system.
+///
+/// # libc functions used
+///
+/// - [`getgrent`](https://docs.rs/libc/*/libc/fn.getgrent.html)
+/// - [`setgrent`](https://docs.rs/libc/*/libc/fn.setgrent.html)
+/// - [`endgrent`](https://docs.rs/libc/*/libc/fn.endgrent.html)
+///
+/// # Safety
+///
+/// This constructor is marked as `unsafe`, which is odd for a crate
+/// that’s meant to be a safe interface. It *has* to be unsafe because
+/// we cannot guarantee that the underlying C functions,
+/// `getgrent`/`setgrent`/`endgrent` that iterate over the system’s
+/// `group` entries, are called in a thread-safe manner.
+///
+/// These functions [modify a global
+/// state](http://man7.org/linux/man-pages/man3/getgrent.3.html#ATTRIBUTES),
+/// and if any are used at the same time, the state could be reset,
+/// resulting in a data race. We cannot even place it behind an internal
+/// `Mutex`, as there is nothing stopping another `extern` function
+/// definition from calling it!
+///
+/// So to iterate all groups, construct the iterator inside an `unsafe`
+/// block, then make sure to not make a new instance of it until
+/// iteration is over.
+///
+/// # Examples
+///
+/// ```
+/// use users::all_groups;
+///
+/// let iter = unsafe { all_groups() };
+/// for group in iter {
+///     println!("Group #{} ({:?})", group.gid(), group.name());
+/// }
+/// ```
+pub unsafe fn all_groups() -> impl Iterator<Item=Group> {
+    #[cfg(feature = "logging")]
+    trace!("Running setgrent");
+
+    #[cfg(not(target_os = "android"))]
+    libc::setgrent();
+    AllGroups
+}
+
+impl Drop for AllGroups {
+    #[cfg(target_os = "android")]
+    fn drop(&mut self) {
+        // nothing to do here
+    }
+
+    #[cfg(not(target_os = "android"))]
+    fn drop(&mut self) {
+        #[cfg(feature = "logging")]
+        trace!("Running endgrent");
+
+        unsafe { libc::endgrent() };
+    }
+}
+
+impl Iterator for AllGroups {
+    type Item = Group;
+
+    #[cfg(target_os = "android")]
+    fn next(&mut self) -> Option<Group> {
+        None
+    }
+
+    #[cfg(not(target_os = "android"))]
+    fn next(&mut self) -> Option<Group> {
+        #[cfg(feature = "logging")]
+        trace!("Running getgrent");
+
+        let result = unsafe { libc::getgrent() };
+
+        if result.is_null() {
+            None
+        }
+        else {
+            let group = unsafe { struct_to_group(result.read()) };
+            Some(group)
+        }
+    }
+}
+
+
 
 /// OS-specific extensions to users and groups.
 ///
